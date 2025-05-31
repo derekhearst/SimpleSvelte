@@ -29,4 +29,4 @@ jobs:
       - run: bun install
       - run: bun publish
         env:
-          NPM_TOKEN: ${{secrets.npm_token}}
+          NPM_CONFIG_TOKEN: ${{secrets.NPM_CONFIG_TOKEN}}
