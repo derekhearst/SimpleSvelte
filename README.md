@@ -14,7 +14,7 @@ A lightweight collection of essential Svelte components and utilities for buildi
 ## Installation
 
 ```bash
-npm install simplesvelte
+bun install simplesvelte
 ```
 
 ## Quick Start
@@ -139,13 +139,13 @@ This library is built with SvelteKit and powered by Vite. To contribute or modif
 # Clone and install dependencies
 git clone <your-repo>
 cd SimpleSvelte
-npm install
+bun install
 
 # Start development server with showcase app
-npm run dev
+bun run dev
 
 # or open in browser automatically
-npm run dev -- --open
+bun run dev -- --open
 ```
 
 The `src/lib` directory contains all library components, while `src/routes` provides a showcase/preview app for testing components.
@@ -155,7 +155,7 @@ The `src/lib` directory contains all library components, while `src/routes` prov
 To build your library:
 
 ```bash
-npm run package
+bun run package
 ```
 
 This will generate the distribution files in the `dist` directory.
