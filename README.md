@@ -53,7 +53,7 @@ bun install simplesvelte
 
 - **Input**: Versatile input component supporting text, email, password, number, date, and more
 - **Label**: Accessible label component with built-in styling
-- **Select**: Dropdown select component with custom styling
+- **Select**: Dropdown select component with custom styling and multi-select support
 - **TextArea**: Multi-line text input with auto-resize options
 
 ### UI Components
@@ -69,6 +69,32 @@ bun install simplesvelte
 - **roleHelper**: Accessibility helper for ARIA roles
 
 ## Examples
+
+### Select Component
+
+```svelte
+<script>
+	import { Select } from 'simplesvelte'
+
+	let singleValue = ''
+	let multipleValues = []
+
+	const options = [
+		{ value: 'apple', label: 'Apple' },
+		{ value: 'banana', label: 'Banana' },
+		{ value: 'cherry', label: 'Cherry' },
+	]
+</script>
+
+<!-- Single Select -->
+<Select bind:value={singleValue} {options} label="Choose a fruit" name="fruit" required />
+
+<!-- Multi Select -->
+<Select bind:value={multipleValues} {options} label="Choose multiple fruits" name="fruits" multiple />
+
+<!-- Disabled Select -->
+<Select value={['apple', 'cherry']} {options} label="Pre-selected fruits" name="preset-fruits" multiple disabled />
+```
 
 ### Using Pop for Notifications
 

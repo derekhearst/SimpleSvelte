@@ -2,7 +2,6 @@
 	import { clickOutside } from './utils.js'
 	import Input from './Input.svelte'
 	import Label from './Label.svelte'
-
 	type Option = {
 		value: any
 		label: any
@@ -10,14 +9,16 @@
 	}
 
 	type Props = {
-		value?: string | number | undefined | null
+		value?: string | number | undefined | null | (string | number)[]
 		options: Option[]
 		name?: string
 		label?: string
 		class?: string
 		required?: boolean
 		disabled?: boolean
+		multiple?: boolean
 	}
+
 	let {
 		value = $bindable(undefined),
 		options: items,
@@ -26,88 +27,244 @@
 		class: className = '',
 		required = false,
 		disabled = false,
+		multiple = false,
 	}: Props = $props()
 
 	let detailsOpen = $state(false)
 
-	let selectedItem = $derived.by(() => items.find((item) => item.value === value))
+	// Initialize value as array for multiple mode, ensure it's always an array when multiple
+	$effect(() => {
+		if (multiple && !Array.isArray(value)) {
+			value = value ? [value] : []
+		} else if (!multiple && Array.isArray(value)) {
+			value = value.length > 0 ? value[0] : undefined
+		}
+	})
 
-	let filter = $derived(selectedItem ? selectedItem.label : '')
+	// For single select mode
+	let selectedItem = $derived.by(() => {
+		if (multiple) return null
+		return items.find((item) => item.value === value)
+	})
+	// For multi select mode
+	let selectedItems = $derived.by(() => {
+		if (!multiple || !Array.isArray(value)) return []
+		return items.filter((item) => (value as (string | number)[]).includes(item.value))
+	})
+
+	// Check if an item is selected in multi-select mode
+	function isItemSelected(itemValue: any): boolean {
+		if (!multiple) return itemValue === value
+		return Array.isArray(value) && value.includes(itemValue)
+	}
+
+	// Toggle item selection in multi-select mode
+	function toggleItemSelection(itemValue: any) {
+		if (!multiple) {
+			value = itemValue
+			filter = items.find((item) => item.value === itemValue)?.label || ''
+			detailsOpen = false
+			return
+		}
+
+		if (!Array.isArray(value)) {
+			value = [itemValue]
+		} else if (value.includes(itemValue)) {
+			value = value.filter((v) => v !== itemValue)
+		} else {
+			value = [...value, itemValue]
+		}
+	}
+
+	// Remove specific item from multi-select
+	function removeSelectedItem(itemValue: any) {
+		if (Array.isArray(value)) {
+			value = value.filter((v) => v !== itemValue)
+		}
+	}
+
+	// Clear all selections
+	function clearAll() {
+		value = multiple ? [] : undefined
+		filter = ''
+		detailsOpen = false
+	}
+	let filter = $derived.by(() => {
+		if (multiple) return ''
+		return selectedItem ? selectedItem.label : ''
+	})
+
 	let filteredItems = $derived.by(() => {
 		if (filter.length === 0) return items
 		return items.filter((item) => item.label.toLowerCase().includes(filter.toLowerCase()))
 	})
 
+	// Display text for the input placeholder/value
+	let displayText = $derived.by(() => {
+		if (multiple) {
+			const count = selectedItems.length
+			if (count === 0) return 'Select items...'
+			if (count === 1) return selectedItems[0].label
+			return `${count} items selected`
+		}
+		return selectedItem ? selectedItem.label : 'Select an item...'
+	})
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
 </script>
 
-<!-- Important Hidden Input, This is the one that gets submitted -->
-<input type="hidden" {name} value={value ?? ''} />
+<!-- Data inputs for form submission -->
+{#if multiple && Array.isArray(value)}
+	{#each value as val}
+		<input type="hidden" {name} value={val} />
+	{/each}
+{:else if !multiple && value !== undefined && value !== null && value !== ''}
+	<input type="hidden" {name} {value} />
+{/if}
 
 <Label {label} {name} {required} class={className}>
 	{#if !disabled}
 		<details
-			class="dropdown"
+			class="dropdown w-full"
 			bind:open={detailsOpen}
 			use:clickOutside={() => {
-				filter = selectedItem?.label ?? ''
+				if (!detailsOpen) return
+				if (!multiple) {
+					filter = selectedItem?.label ?? ''
+				} else {
+					filter = ''
+				}
+				console.log('clickOutside')
 				detailsOpen = false
 			}}>
 			<summary
-				class="select cursor-pointer bg-none pr-1"
+				class="select h-max min-h-10 w-full cursor-pointer bg-none pr-1"
 				onclick={() => {
 					searchEL?.focus()
 					filter = ''
-					if (!detailsOpen) detailsOpen = true
 				}}>
-				<input
-					type="text"
-					class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
-					bind:this={searchEL}
-					bind:value={filter}
-					placeholder={selectedItem ? selectedItem?.label : 'Select an item...'} />
-				{#if !required && value}
+				{#if multiple}
+					<!-- Multi-select display with chips -->
+					<div class="flex min-h-8 flex-wrap gap-1 p-1">
+						{#each selectedItems as item (item.value)}
+							<div class="badge badge-primary gap-1">
+								<span class="truncate">{item.label}</span>
+								<button
+									type="button"
+									class="btn btn-xs btn-circle btn-ghost"
+									onclick={(e) => {
+										e.stopPropagation()
+										removeSelectedItem(item.value)
+									}}>
+									✕
+								</button>
+							</div>
+						{/each}
+						<!-- Search input for filtering in multi-select -->
+						<input
+							type="text"
+							class="h-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
+							bind:this={searchEL}
+							bind:value={filter}
+							onclick={(e) => {
+								detailsOpen = true
+							}}
+							placeholder={'Search...'}
+							required={required && (!Array.isArray(value) || value.length === 0)} />
+					</div>
+				{:else}
+					<!-- Single-select display -->
+					<input
+						type="text"
+						class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
+						bind:this={searchEL}
+						bind:value={filter}
+						onclick={(e) => {
+							detailsOpen = true
+						}}
+						placeholder={displayText}
+						required={required && !value} />
+				{/if}
+
+				{#if !required && ((multiple && Array.isArray(value) && value.length > 0) || (!multiple && value))}
 					<button
 						type="button"
-						class="btn btn-sm btn-circle btn-ghost"
+						class="btn btn-sm btn-circle btn-ghost absolute top-1 right-1"
 						onclick={(e) => {
-							detailsOpen = false
 							e.stopPropagation()
-							value = undefined
-							filter = ''
+							clearAll()
 						}}>
 						✕
 					</button>
 				{/if}
 			</summary>
-
 			<ul class="menu dropdown-content bg-base-100 rounded-box z-10 mt-2 flex w-full flex-col gap-1 p-2 shadow outline">
-				{#if filteredItems.length == 0}
+				{#if multiple && filteredItems.length > 1}
+					<!-- Select All / Clear All options for multi-select -->
+
+					<div class="flex gap-2">
+						<button
+							type="button"
+							class="btn btn-sm hover:bg-base-content/10 grow"
+							onclick={() => {
+								const allValues = filteredItems.map((item) => item.value)
+								value = [...allValues]
+							}}>
+							Select All
+						</button>
+						<button
+							type="button"
+							class="btn btn-sm hover:bg-base-content/10 grow"
+							onclick={() => {
+								value = []
+							}}>
+							Clear All
+						</button>
+					</div>
+				{/if}
+
+				{#if filteredItems.length === 0}
 					<li class="m-2 text-center text-sm text-gray-500">No items found</li>
 				{/if}
+
 				{#each filteredItems as item (item.value)}
-					{@const isSelected = item.value === value}
+					{@const isSelected = isItemSelected(item.value)}
 					<li>
 						<button
-							class="w-full {isSelected ? 'bg-primary text-primary-content' : ''} "
+							class="flex w-full items-center gap-2 {isSelected ? 'bg-primary text-primary-content' : ''}"
 							type="button"
 							onclick={() => {
-								value = item.value
-								filter = item.label
-								detailsOpen = false
+								toggleItemSelection(item.value)
+								searchEL?.focus()
 							}}>
-							{item.label}
+							{#if multiple}
+								<!-- Checkbox for multi-select -->
+								<input type="checkbox" class="checkbox checkbox-sm pointer-events-none" checked={isSelected} readonly />
+							{/if}
+
+							<span class="flex-1 text-left">{item.label}</span>
 						</button>
 					</li>
 				{/each}
 			</ul>
 		</details>
 	{:else}
-		<Input
-			type="text"
-			class="h-full w-full outline-0"
-			disabled
-			value={selectedItem ? selectedItem.label : ''}
-			readonly />
+		<!-- Disabled state -->
+		{#if multiple}
+			<div class="flex min-h-12 flex-wrap gap-1 p-2">
+				{#each selectedItems as item (item.value)}
+					<div class="badge badge-ghost">{item.label}</div>
+				{/each}
+				{#if selectedItems.length === 0}
+					<span class="text-gray-500">No items selected</span>
+				{/if}
+			</div>
+		{:else}
+			<Input
+				type="text"
+				class="h-full w-full outline-0"
+				disabled
+				value={selectedItem ? selectedItem.label : ''}
+				readonly />
+		{/if}
 	{/if}
 </Label>
