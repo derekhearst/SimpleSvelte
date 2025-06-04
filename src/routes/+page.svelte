@@ -30,7 +30,7 @@
 		</div>
 	</div>
 
-	<Input type="date" name="test" />
+	<Input type="datetime-local" name="test" />
 
 	<p>
 		Visit <a href="https://svelte.dev/docs/kit" class="link link-primary">svelte.dev/docs/kit</a> to read the documentation

@@ -38,16 +38,17 @@
 		class: myClass,
 		...rest
 	}: Props = $props()
-
 	function getValue() {
-		console.log('getValue', value, type)
-		if (type == 'date' || type == 'datetime-local') {
+		if (type == 'date') {
+			if (!value) return ''
+			return dayjs(value).format('YYYY-MM-DD')
+		} else if (type == 'datetime-local') {
+			if (!value) return ''
 			return dayjs(value).format('YYYY-MM-DDTHH:mm')
 		}
-		return value
+		return value ?? ''
 	}
 	function setValue(newValue: any) {
-		console.log('setValue', newValue, type)
 		if (type == 'number') {
 			if (isNaN(Number(newValue))) {
 				value = null
@@ -78,8 +79,6 @@
 		if (type == 'checkbox') return 'checkbox'
 		return 'input'
 	})
-
-	$inspect(value)
 </script>
 
 <input type="hidden" {name} value={value ?? ''} />
