@@ -75,9 +75,9 @@
 	}
 
 	let inputClass = $derived.by(() => {
-		if (type == 'file') return 'file-input'
-		if (type == 'checkbox') return 'checkbox'
-		return 'input'
+		if (type == 'file') return 'file-input w-full'
+		if (type == 'checkbox') return 'checkbox '
+		return 'input w-full'
 	})
 </script>
 

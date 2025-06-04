@@ -24,5 +24,5 @@
 </script>
 
 <Label class={myClass} {label} {name} {required} {disabled}>
-	<textarea bind:this={element} {disabled} class="textarea" {...rest} bind:value></textarea>
+	<textarea bind:this={element} {disabled} class="textarea w-full" {...rest} bind:value></textarea>
 </Label>
