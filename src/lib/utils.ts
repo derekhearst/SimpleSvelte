@@ -74,6 +74,14 @@ export class FormHelper {
 		if (value == '' || value == undefined) return undefined
 		return parseFloat(this.formData.get(key) as string)
 	}
+	sArray(key: string) {
+		const values = this.formData.getAll(key) as string[]
+		return values
+	}
+	nArray(key: string) {
+		const value = this.formData.getAll(key) as string[]
+		return value.map((v) => parseInt(v))
+	}
 }
 
 export class RoleHelper {
