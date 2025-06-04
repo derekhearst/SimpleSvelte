@@ -46,28 +46,27 @@
 		}
 		return value
 	}
-
 	function setValue(newValue: any) {
 		console.log('setValue', newValue, type)
 		if (type == 'number') {
 			if (isNaN(Number(newValue))) {
 				value = null
 			} else {
-				newValue = Number(newValue)
+				value = Number(newValue)
 			}
 		} else if (type == 'date') {
 			if (isNaN(Date.parse(newValue))) {
 				value = null
 			} else {
 				const tempDate = dayjs(newValue).utc().set('hour', 0).set('minute', 0).set('second', 0).set('millisecond', 0)
-				newValue = tempDate.toDate()
+				value = tempDate.toDate()
 			}
 		} else if (type == 'datetime-local') {
 			if (isNaN(Date.parse(newValue))) {
 				value = null
 			} else {
 				const tempDate = dayjs(newValue).set('second', 0).set('millisecond', 0)
-				newValue = tempDate.toDate()
+				value = tempDate.toDate()
 			}
 		} else {
 			value = newValue
