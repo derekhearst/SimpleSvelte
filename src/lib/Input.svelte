@@ -40,6 +40,7 @@
 	}: Props = $props()
 
 	function getValue() {
+		console.log('getValue', value, type)
 		if (type == 'date' || type == 'datetime-local') {
 			return dayjs(value).format('YYYY-MM-DDTHH:mm')
 		}
@@ -47,6 +48,7 @@
 	}
 
 	function setValue(newValue: any) {
+		console.log('setValue', newValue, type)
 		if (type == 'number') {
 			if (isNaN(Number(newValue))) {
 				value = null
@@ -77,6 +79,8 @@
 		if (type == 'checkbox') return 'checkbox'
 		return 'input'
 	})
+
+	$inspect(value)
 </script>
 
 <input type="hidden" {name} value={value ?? ''} />
@@ -84,6 +88,8 @@
 <Label class={myClass} {label} {name} {required} {disabled}>
 	{#if type == 'checkbox'}
 		<input bind:this={element} type="checkbox" {disabled} class={inputClass} {...rest} bind:checked={value} />
+	{:else if type == 'file'}
+		<input bind:this={element} type="file" {disabled} class={inputClass} {...rest} bind:files={value} />
 	{:else}
 		<input
 			bind:this={element}

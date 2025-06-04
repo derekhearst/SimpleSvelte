@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Input } from '$lib/index.js'
 	import Select from '$lib/Select.svelte'
 
 	let value = $state([])
@@ -28,6 +29,8 @@
 			{/if}
 		</div>
 	</div>
+
+	<Input type="date" name="test" />
 
 	<p>
 		Visit <a href="https://svelte.dev/docs/kit" class="link link-primary">svelte.dev/docs/kit</a> to read the documentation
