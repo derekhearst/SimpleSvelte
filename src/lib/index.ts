@@ -6,3 +6,6 @@ export { default as Modal } from './Modal.svelte'
 export { default as Grid } from './Grid.svelte'
 export { Pop } from './pop.js'
 export { clickOutside, FormHelper, RoleHelper as roleHelper } from './utils.js'
+
+// Export CSS for consumers
+import './styles.css'

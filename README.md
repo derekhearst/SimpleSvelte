@@ -17,6 +17,21 @@ A lightweight collection of essential Svelte components and utilities for buildi
 bun install simplesvelte
 ```
 
+## CSS Setup
+
+SimpleSvelte requires CSS to be imported for proper styling. See [CSS_USAGE.md](./CSS_USAGE.md) for detailed instructions.
+
+**Quick setup:**
+```css
+/* In your main CSS file */
+@import 'simplesvelte/styles.css';
+```
+
+Or in JavaScript/TypeScript:
+```typescript
+import 'simplesvelte/styles.css';
+```
+
 ## Quick Start
 
 ```svelte
