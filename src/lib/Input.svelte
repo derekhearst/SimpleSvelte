@@ -94,7 +94,7 @@
 			{type}
 			{disabled}
 			{required}
-			class="disabled:text-base-content disabled:!border-base-content/20 disabled:!bg-base-100 {inputClass} "
+			class="disabled:text-base-content disabled:!border-base-content/20 {inputClass} "
 			{...rest}
 			bind:value={getValue, setValue} />
 	{/if}

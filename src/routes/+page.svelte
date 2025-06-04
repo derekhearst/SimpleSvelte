@@ -31,8 +31,9 @@
 	</div>
 
 	<Input type="datetime-local" name="test" />
-
-	<Input name="" value="test" label="Test Input" disabled class="mb-4" />
+	<div class="bg-base-100">
+		<Input name="" value="test" label="Test Input" disabled class="mb-4" />
+	</div>
 
 	<p>
 		Visit <a href="https://svelte.dev/docs/kit" class="link link-primary">svelte.dev/docs/kit</a> to read the documentation
