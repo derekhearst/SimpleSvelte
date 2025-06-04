@@ -19,7 +19,7 @@
 	})
 </script>
 
-<dialog bind:this={dialogEl} class="modal modal-middle overflow-auto">
+<dialog bind:this={dialogEl} onclose={() => (open = false)} class="modal modal-middle overflow-auto">
 	<div class="modal-box max-w-max min-w-[32rem] pt-12">
 		<form method="dialog">
 			<button
