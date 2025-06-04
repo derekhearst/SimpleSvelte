@@ -13,7 +13,7 @@ SimpleSvelte includes pre-built Tailwind CSS and DaisyUI styles that you can imp
 
 ```typescript
 // In your main app file (e.g., main.ts, app.ts)
-import 'simplesvelte/styles.css';
+import 'simplesvelte/styles.css'
 ```
 
 ### Option 3: Import the index CSS
@@ -26,6 +26,7 @@ import 'simplesvelte/styles.css';
 ### What's Included
 
 The CSS includes:
+
 - **Tailwind CSS v4** - All utility classes
 - **DaisyUI v5** - Component library with themes
 - **Custom component styles** - Styles for SimpleSvelte components
@@ -37,15 +38,15 @@ If you're using Vite, make sure to include the CSS in your `vite.config.ts`:
 ```typescript
 // vite.config.ts
 export default defineConfig({
-  // ... other config
-  css: {
-    preprocessorOptions: {
-      css: {
-        additionalData: `@import 'simplesvelte/styles.css';`
-      }
-    }
-  }
-});
+	// ... other config
+	css: {
+		preprocessorOptions: {
+			css: {
+				additionalData: `@import 'simplesvelte/styles.css';`,
+			},
+		},
+	},
+})
 ```
 
 ### Themes
@@ -54,7 +55,7 @@ DaisyUI themes are included. You can change themes by adding the `data-theme` at
 
 ```html
 <html data-theme="dark">
-  <!-- Your app -->
+	<!-- Your app -->
 </html>
 ```
 
