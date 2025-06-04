@@ -169,7 +169,7 @@
 					<!-- Multi-select display with chips -->
 					<div class="flex min-h-8 flex-wrap gap-1 p-1">
 						{#each selectedItems as item (item.value)}
-							<div class="badge badge-primary gap-1">
+							<div class="badge !badge-primary gap-1">
 								<span class="truncate">{item.label}</span>
 								<button
 									type="button"
