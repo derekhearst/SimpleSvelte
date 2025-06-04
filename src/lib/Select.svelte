@@ -98,7 +98,6 @@
 		if (filter.length === 0) return items
 		return items.filter((item) => item.label.toLowerCase().includes(filter.toLowerCase()))
 	})
-
 	// Display text for the input placeholder/value
 	let displayText = $derived.by(() => {
 		if (multiple) {
@@ -110,6 +109,30 @@
 		return selectedItem ? selectedItem.label : 'Select an item...'
 	})
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
+
+	// Virtual list implementation
+	let scrollContainer: HTMLDivElement | undefined = $state(undefined)
+	let scrollTop = $state(0)
+	const itemHeight = 40 // Approximate height of each item in pixels
+	const containerHeight = 320 // max-h-80 = 320px
+	const visibleCount = Math.ceil(containerHeight / itemHeight) + 2 // Add buffer items
+
+	// Calculate visible items based on scroll position
+	let visibleItems = $derived.by(() => {
+		const startIndex = Math.floor(scrollTop / itemHeight)
+		const endIndex = Math.min(startIndex + visibleCount, filteredItems.length)
+		return {
+			startIndex: Math.max(0, startIndex),
+			endIndex,
+			items: filteredItems.slice(Math.max(0, startIndex), endIndex),
+		}
+	})
+
+	// Handle scroll events
+	function handleScroll(e: Event) {
+		const target = e.target as HTMLDivElement
+		scrollTop = target.scrollTop
+	}
 </script>
 
 <!-- Data inputs for form submission -->
@@ -197,7 +220,8 @@
 					</button>
 				{/if}
 			</summary>
-			<ul class="menu dropdown-content bg-base-100 rounded-box z-10 mt-2 flex w-full flex-col gap-1 p-2 shadow outline">
+			<ul
+				class="menu dropdown-content bg-base-100 rounded-box z-10 mt-2 flex w-full flex-col flex-nowrap gap-1 p-2 shadow outline">
 				{#if multiple && filteredItems.length > 1}
 					<!-- Select All / Clear All options for multi-select -->
 
@@ -221,30 +245,48 @@
 						</button>
 					</div>
 				{/if}
-
 				{#if filteredItems.length === 0}
 					<li class="m-2 text-center text-sm text-gray-500">No items found</li>
 				{/if}
 
-				{#each filteredItems as item (item.value)}
-					{@const isSelected = isItemSelected(item.value)}
-					<li>
-						<button
-							class="flex w-full items-center gap-2 {isSelected ? 'bg-primary text-primary-content' : ''}"
-							type="button"
-							onclick={() => {
-								toggleItemSelection(item.value)
-								searchEL?.focus()
-							}}>
-							{#if multiple}
-								<!-- Checkbox for multi-select -->
-								<input type="checkbox" class="checkbox checkbox-sm pointer-events-none" checked={isSelected} readonly />
-							{/if}
+				{#if filteredItems.length > 0}
+					<div class="relative max-h-80 overflow-y-auto" bind:this={scrollContainer} onscroll={handleScroll}>
+						<!-- Virtual spacer for items before visible range -->
+						{#if visibleItems.startIndex > 0}
+							<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
+						{/if}
 
-							<span class="flex-1 text-left">{item.label}</span>
-						</button>
-					</li>
-				{/each}
+						<!-- Render only visible items -->
+						{#each visibleItems.items as item, index (item.value)}
+							{@const isSelected = isItemSelected(item.value)}
+							<li style="height: {itemHeight}px;">
+								<button
+									class="flex h-full w-full items-center gap-2 {isSelected ? 'bg-primary text-primary-content' : ''}"
+									type="button"
+									onclick={() => {
+										toggleItemSelection(item.value)
+										searchEL?.focus()
+									}}>
+									{#if multiple}
+										<!-- Checkbox for multi-select -->
+										<input
+											type="checkbox"
+											class="checkbox checkbox-sm pointer-events-none"
+											checked={isSelected}
+											readonly />
+									{/if}
+
+									<span class="flex-1 text-left">{item.label}</span>
+								</button>
+							</li>
+						{/each}
+
+						<!-- Virtual spacer for items after visible range -->
+						{#if visibleItems.endIndex < filteredItems.length}
+							<div style="height: {(filteredItems.length - visibleItems.endIndex) * itemHeight}px;"></div>
+						{/if}
+					</div>
+				{/if}
 			</ul>
 		</details>
 	{:else}
