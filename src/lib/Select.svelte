@@ -271,7 +271,7 @@
 										<!-- Checkbox for multi-select -->
 										<input
 											type="checkbox"
-											class="checkbox checkbox-sm pointer-events-none"
+											class="checkbox checkbox-sm !text-primary-content pointer-events-none"
 											checked={isSelected}
 											readonly />
 									{/if}
