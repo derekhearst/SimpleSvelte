@@ -17,6 +17,7 @@
 		required?: boolean
 		disabled?: boolean
 		multiple?: boolean
+		[key: string]: any // Allow additional properties
 	}
 
 	let {
@@ -28,6 +29,7 @@
 		required = false,
 		disabled = false,
 		multiple = false,
+		...rest
 	}: Props = $props()
 
 	let detailsOpen = $state(false)
@@ -138,10 +140,10 @@
 <!-- Data inputs for form submission -->
 {#if multiple && Array.isArray(value)}
 	{#each value as val}
-		<input type="hidden" {name} value={val} />
+		<input type="hidden" {name} value={val} {...rest} />
 	{/each}
 {:else if !multiple && value !== undefined && value !== null && value !== ''}
-	<input type="hidden" {name} {value} />
+	<input type="hidden" {name} {value} {...rest} />
 {/if}
 
 <Label {label} {name} {required} class={className}>
