@@ -18,7 +18,12 @@
 
 	<div class="mb-8">
 		<h2 class="mb-4 text-2xl font-semibold">Multi-Select Component Demo</h2>
-		<Select bind:value {options} label="Choose your favorite frameworks" name="frameworks" multiple />
+		<Select
+			bind:value
+			{options}
+			label="Choose your favorite frameworks"
+			name="frameworks"
+			onchange={() => console.log('test')} />
 
 		<div class="bg-base-200 rounded-box mt-4 p-4">
 			<strong>Selected:</strong>

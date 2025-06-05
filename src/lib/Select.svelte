@@ -17,7 +17,7 @@
 		required?: boolean
 		disabled?: boolean
 		multiple?: boolean
-		[key: string]: any // Allow additional properties
+		onchange?: (value: string | number | undefined | null | (string | number)[]) => void
 	}
 
 	let {
@@ -29,10 +29,14 @@
 		required = false,
 		disabled = false,
 		multiple = false,
-		...rest
+		onchange,
 	}: Props = $props()
 
 	let detailsOpen = $state(false)
+
+	$effect(() => {
+		if (onchange) onchange(value)
+	})
 
 	// Initialize value as array for multiple mode, ensure it's always an array when multiple
 	$effect(() => {
@@ -140,10 +144,10 @@
 <!-- Data inputs for form submission -->
 {#if multiple && Array.isArray(value)}
 	{#each value as val}
-		<input type="hidden" {name} value={val} {...rest} />
+		<input type="hidden" {name} value={val} />
 	{/each}
 {:else if !multiple && value !== undefined && value !== null && value !== ''}
-	<input type="hidden" {name} {value} {...rest} />
+	<input type="hidden" {name} {value} />
 {/if}
 
 <Label {label} {name} {required} class={className}>
