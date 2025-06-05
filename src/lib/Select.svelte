@@ -166,7 +166,7 @@
 				detailsOpen = false
 			}}>
 			<summary
-				class="select h-max min-h-10 w-full cursor-pointer !bg-none pr-1"
+				class="select h-max min-h-10 w-full min-w-12 cursor-pointer !bg-none pr-1"
 				onclick={() => {
 					searchEL?.focus()
 					filter = ''
