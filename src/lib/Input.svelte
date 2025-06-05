@@ -81,13 +81,15 @@
 	})
 </script>
 
-<input type="hidden" {name} value={value ?? ''} />
+{#if type != 'file'}
+	<input type="hidden" {name} value={value ?? ''} />
+{/if}
 
 <Label class={myClass} {label} {name} {required} {disabled}>
 	{#if type == 'checkbox'}
 		<input bind:this={element} type="checkbox" {disabled} class={inputClass} {...rest} bind:checked={value} />
 	{:else if type == 'file'}
-		<input bind:this={element} type="file" {disabled} class={inputClass} {...rest} />
+		<input bind:this={element} {name} type="file" {disabled} class={inputClass} {...rest} />
 	{:else}
 		<input
 			bind:this={element}
