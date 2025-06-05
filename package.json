@@ -27,9 +27,7 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js"
-		},
-		"./styles.css": "./dist/styles.css",
-		"./index.css": "./dist/index.css"
+		}
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
