@@ -87,7 +87,7 @@
 	{#if type == 'checkbox'}
 		<input bind:this={element} type="checkbox" {disabled} class={inputClass} {...rest} bind:checked={value} />
 	{:else if type == 'file'}
-		<input bind:this={element} type="file" {disabled} class={inputClass} {...rest} bind:files={value} />
+		<input bind:this={element} type="file" {disabled} class={inputClass} {...rest} />
 	{:else}
 		<input
 			bind:this={element}
