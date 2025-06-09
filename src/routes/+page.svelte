@@ -35,6 +35,7 @@
 		</div>
 	</div>
 
+	<Input type="date" name="test" />
 	<Input type="datetime-local" name="test" />
 	<div class="bg-base-100">
 		<Input name="" value="test" label="Test Input" disabled class="mb-4" />

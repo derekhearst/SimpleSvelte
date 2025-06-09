@@ -41,7 +41,7 @@
 	function getValue() {
 		if (type == 'date') {
 			if (!value) return ''
-			return dayjs(value).format('YYYY-MM-DD')
+			return dayjs(value).utc().format('YYYY-MM-DD')
 		} else if (type == 'datetime-local') {
 			if (!value) return ''
 			return dayjs(value).format('YYYY-MM-DDTHH:mm')
@@ -79,6 +79,8 @@
 		if (type == 'checkbox') return 'checkbox '
 		return 'input w-full'
 	})
+
+	$inspect(value)
 </script>
 
 {#if type != 'file'}
