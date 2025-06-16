@@ -267,7 +267,9 @@
 							{@const isSelected = isItemSelected(item.value)}
 							<li style="height: {itemHeight}px;">
 								<button
-									class="flex h-full w-full items-center gap-2 {isSelected ? 'bg-primary text-primary-content' : ''}"
+									class="flex h-full w-full items-center gap-2 {isSelected
+										? ' bg-primary text-primary-content hover:!bg-primary/70'
+										: ''}"
 									type="button"
 									onclick={() => {
 										toggleItemSelection(item.value)
