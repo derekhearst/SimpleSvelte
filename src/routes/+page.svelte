@@ -45,6 +45,9 @@
 	<Input type="checkbox" name="test-checkbox" label="Test Checkbox" class="mb-4" />
 	<Input type="checkbox" name="test-checkbox" label="Test Checkbox" required class="mb-4" />
 
+	<Select {options} required label="Required Frameworks" name="frameworks" />
+	<Select {options} label="Optional Frameworks" name="frameworks" multiple />
+
 	<p>
 		Visit <a href="https://svelte.dev/docs/kit" class="link link-primary">svelte.dev/docs/kit</a> to read the documentation
 	</p>

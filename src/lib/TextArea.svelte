@@ -23,6 +23,6 @@
 	}: Props = $props()
 </script>
 
-<Label class={myClass} {label} {name} optional={required} {disabled}>
+<Label class={myClass} {label} {name} optional={!required} {disabled}>
 	<textarea bind:this={element} {disabled} class="textarea w-full" {...rest} bind:value></textarea>
 </Label>
