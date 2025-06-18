@@ -35,11 +35,15 @@
 		</div>
 	</div>
 
-	<Input type="date" name="test" />
-	<Input type="datetime-local" name="test" />
+	<Input type="date" name="test" required label="Test required" />
+
+	<Input type="datetime-local" name="test" label="Test Option" />
 	<div class="bg-base-100">
 		<Input name="" value="test" label="Test Input" disabled class="mb-4" />
 	</div>
+
+	<Input type="checkbox" name="test-checkbox" label="Test Checkbox" class="mb-4" />
+	<Input type="checkbox" name="test-checkbox" label="Test Checkbox" required class="mb-4" />
 
 	<p>
 		Visit <a href="https://svelte.dev/docs/kit" class="link link-primary">svelte.dev/docs/kit</a> to read the documentation

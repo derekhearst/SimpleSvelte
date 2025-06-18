@@ -150,7 +150,7 @@
 	<input type="hidden" {name} {value} />
 {/if}
 
-<Label {label} {name} {required} class={className}>
+<Label {label} {name} optional={required} class={className}>
 	{#if !disabled}
 		<details
 			class="dropdown w-full"

@@ -80,14 +80,16 @@
 		return 'input w-full'
 	})
 
-	$inspect(value)
+	let showOptional = $derived.by(() => {
+		return !required && !disabled && type != 'checkbox'
+	})
 </script>
 
 {#if type != 'file'}
 	<input type="hidden" {name} value={value ?? ''} />
 {/if}
 
-<Label class={myClass} {label} {name} {required} {disabled}>
+<Label class={myClass} {label} {name} optional={showOptional} {disabled}>
 	{#if type == 'checkbox'}
 		<input bind:this={element} type="checkbox" {disabled} class={inputClass} {...rest} bind:checked={value} />
 	{:else if type == 'file'}
