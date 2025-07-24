@@ -15,6 +15,7 @@
 		label?: string
 		class?: string
 		required?: boolean
+		placeholder?: string
 		disabled?: boolean
 		multiple?: boolean
 		onchange?: (value: string | number | undefined | null | (string | number)[]) => void
@@ -29,6 +30,7 @@
 		required = false,
 		disabled = false,
 		multiple = false,
+		placeholder = 'Select an item...',
 		onchange,
 	}: Props = $props()
 
@@ -108,11 +110,11 @@
 	let displayText = $derived.by(() => {
 		if (multiple) {
 			const count = selectedItems.length
-			if (count === 0) return 'Select items...'
+			if (count === 0) return placeholder
 			if (count === 1) return selectedItems[0].label
 			return `${count} items selected`
 		}
-		return selectedItem ? selectedItem.label : 'Select an item...'
+		return selectedItem ? selectedItem.label : placeholder
 	})
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
 
@@ -143,7 +145,7 @@
 
 <!-- Data inputs for form submission -->
 {#if multiple && Array.isArray(value)}
-	{#each value as val}
+	{#each value as val, i (i)}
 		<input type="hidden" {name} value={val} />
 	{/each}
 {:else if !multiple && value !== undefined && value !== null && value !== ''}
@@ -194,10 +196,10 @@
 							class="h-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 							bind:this={searchEL}
 							bind:value={filter}
-							onclick={(e) => {
+							onclick={() => {
 								detailsOpen = true
 							}}
-							placeholder={'Search...'}
+							placeholder="Search..."
 							required={required && (!Array.isArray(value) || value.length === 0)} />
 					</div>
 				{:else}
@@ -207,7 +209,7 @@
 						class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 						bind:this={searchEL}
 						bind:value={filter}
-						onclick={(e) => {
+						onclick={() => {
 							detailsOpen = true
 						}}
 						placeholder={displayText}
@@ -263,7 +265,7 @@
 						{/if}
 
 						<!-- Render only visible items -->
-						{#each visibleItems.items as item, index (item.value)}
+						{#each visibleItems.items as item (item.value)}
 							{@const isSelected = isItemSelected(item.value)}
 							<li style="height: {itemHeight}px;">
 								<button

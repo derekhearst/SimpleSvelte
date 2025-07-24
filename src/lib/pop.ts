@@ -110,15 +110,15 @@ export class Pop {
 		}
 	}
 
-	static error(error: Error | string) {
+	static error(error: Error | string, timer = 3000) {
 		if (error instanceof Error) {
-			this.toast(error.message, 'error')
+			this.toast(error.message, 'error', 'top-end', timer)
 		} else {
-			this.toast(error || error, 'error')
+			this.toast(error || error, 'error', 'top-end', timer)
 		}
 	}
 
-	static success(message: string = 'Success!') {
-		this.toast(message, 'success')
+	static success(message: string = 'Success!', timer = 3000) {
+		this.toast(message, 'success', 'top-end', timer)
 	}
 }
