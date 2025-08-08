@@ -18,6 +18,13 @@
 		placeholder?: string
 		disabled?: boolean
 		multiple?: boolean
+		error?: string
+		zodErrors?: {
+			expected: string
+			code: string
+			path: string[]
+			message: string
+		}[]
 		onchange?: (value: string | number | undefined | null | (string | number)[]) => void
 	}
 
@@ -31,6 +38,8 @@
 		disabled = false,
 		multiple = false,
 		placeholder = 'Select an item...',
+		error,
+		zodErrors,
 		onchange,
 	}: Props = $props()
 
@@ -141,6 +150,13 @@
 		const target = e.target as HTMLDivElement
 		scrollTop = target.scrollTop
 	}
+
+	const errorText = $derived.by(() => {
+		if (error) return error
+		if (!name) return undefined
+		if (zodErrors) return zodErrors.find((e) => e.path.includes(name))?.message
+		return undefined
+	})
 </script>
 
 <!-- Data inputs for form submission -->
@@ -152,7 +168,7 @@
 	<input type="hidden" {name} {value} />
 {/if}
 
-<Label {label} {name} optional={!required} class={className}>
+<Label {label} {name} optional={!required} class={className} error={errorText}>
 	{#if !disabled}
 		<details
 			class="dropdown w-full"

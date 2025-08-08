@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext, type Snippet } from 'svelte'
+	import { type Snippet } from 'svelte'
 	type Props = {
 		class?: string
 		label: string | undefined
@@ -7,20 +7,10 @@
 		optional?: boolean
 		disabled?: boolean
 		children?: Snippet
+		error?: string
 	}
 
-	let { class: className = '', name = '', optional = false, label, disabled, children }: Props = $props()
-
-	type FormErrors = Array<{
-		expected: string
-		code: string
-		path: string[]
-		message: string
-	}>
-
-	const formErrors = getContext<FormErrors | undefined>('formErrors')
-
-	const error = formErrors?.find((error) => error.path.includes(name))?.message
+	let { class: className = '', name = '', optional = false, label, disabled, children, error }: Props = $props()
 </script>
 
 {#if label}

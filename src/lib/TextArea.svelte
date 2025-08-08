@@ -9,6 +9,13 @@
 		required?: boolean
 		disabled?: boolean
 		element?: HTMLElement
+		error?: string
+		zodErrors?: {
+			expected: string
+			code: string
+			path: string[]
+			message: string
+		}[]
 		[x: string]: any
 	}
 	let {
@@ -19,10 +26,18 @@
 		required,
 		disabled,
 		class: myClass,
+		error,
+		zodErrors,
 		...rest
 	}: Props = $props()
+	const errorText = $derived.by(() => {
+		if (error) return error
+		if (!name) return undefined
+		if (zodErrors) return zodErrors.find((e) => e.path.includes(name))?.message
+		return undefined
+	})
 </script>
 
-<Label class={myClass} {label} {name} optional={!required} {disabled}>
+<Label class={myClass} {label} {name} optional={!required} {disabled} error={errorText}>
 	<textarea bind:this={element} {disabled} {name} class="textarea w-full" {...rest} bind:value></textarea>
 </Label>
