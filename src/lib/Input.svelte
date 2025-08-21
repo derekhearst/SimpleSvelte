@@ -1,9 +1,5 @@
 <script lang="ts">
 	import Label from './Label.svelte'
-	import dayjs from 'dayjs'
-	import utc from 'dayjs/plugin/utc.js'
-	dayjs.extend(utc)
-
 	type Props = {
 		value?: any
 		name?: string
@@ -50,10 +46,13 @@
 	function getValue() {
 		if (type == 'date') {
 			if (!value) return ''
-			return dayjs(value).utc().format('YYYY-MM-DD')
+			const dateString = new Date(value).toISOString().split('T')[0]
+			return dateString
 		} else if (type == 'datetime-local') {
 			if (!value) return ''
-			return dayjs(value).format('YYYY-MM-DDTHH:mm')
+			const date = new Date(value)
+			const dateString = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, -1)
+			return dateString
 		}
 		return value ?? ''
 	}
@@ -65,18 +64,20 @@
 				value = Number(newValue)
 			}
 		} else if (type == 'date') {
-			if (isNaN(Date.parse(newValue))) {
+			const date = new Date(newValue)
+			if (isNaN(date.getTime())) {
 				value = null
 			} else {
-				const tempDate = dayjs(newValue).utc().set('hour', 0).set('minute', 0).set('second', 0).set('millisecond', 0)
-				value = tempDate.toDate()
+				date.setUTCHours(0, 0, 0, 0)
+				value = date
 			}
 		} else if (type == 'datetime-local') {
-			if (isNaN(Date.parse(newValue))) {
+			const date = new Date(newValue)
+			if (isNaN(date.getTime())) {
 				value = null
 			} else {
-				const tempDate = dayjs(newValue).set('second', 0).set('millisecond', 0)
-				value = tempDate.toDate()
+				date.setSeconds(0, 0)
+				value = date
 			}
 		} else {
 			value = newValue
