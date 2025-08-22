@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SvelteDate } from 'svelte/reactivity'
 	import Label from './Label.svelte'
 	type Props = {
 		value?: any
@@ -64,7 +65,7 @@
 				value = Number(newValue)
 			}
 		} else if (type == 'date') {
-			const date = new Date(newValue)
+			const date = new SvelteDate(newValue)
 			if (isNaN(date.getTime())) {
 				value = null
 			} else {
@@ -72,7 +73,7 @@
 				value = date
 			}
 		} else if (type == 'datetime-local') {
-			const date = new Date(newValue)
+			const date = new SvelteDate(newValue)
 			if (isNaN(date.getTime())) {
 				value = null
 			} else {

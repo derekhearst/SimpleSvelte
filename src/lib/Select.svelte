@@ -5,6 +5,7 @@
 	type Option = {
 		value: any
 		label: any
+		group?: string
 		[key: string]: any // Allow additional properties
 	}
 
@@ -115,6 +116,34 @@
 		if (filter.length === 0) return items
 		return items.filter((item) => item.label.toLowerCase().includes(filter.toLowerCase()))
 	})
+
+	// Flatten filteredItems into a list with group headers and options for virtual scroll
+	type FlatListItem = { type: 'header'; group: string } | { type: 'option'; item: Option }
+	let flatList = $derived.by(() => {
+		const result: FlatListItem[] = []
+		const groups: Record<string, Option[]> = {}
+		const ungrouped: Option[] = []
+		for (const item of filteredItems) {
+			if (item.group) {
+				if (!groups[item.group]) groups[item.group] = []
+				groups[item.group].push(item)
+			} else {
+				ungrouped.push(item)
+			}
+		}
+		// Add ungrouped items first
+		for (const item of ungrouped) {
+			result.push({ type: 'option', item })
+		}
+		// Add grouped items with headers
+		for (const groupName of Object.keys(groups)) {
+			result.push({ type: 'header', group: groupName })
+			for (const item of groups[groupName]) {
+				result.push({ type: 'option', item })
+			}
+		}
+		return result
+	})
 	// Display text for the input placeholder/value
 	let displayText = $derived.by(() => {
 		if (multiple) {
@@ -134,14 +163,16 @@
 	const containerHeight = 320 // max-h-80 = 320px
 	const visibleCount = Math.ceil(containerHeight / itemHeight) + 2 // Add buffer items
 
-	// Calculate visible items based on scroll position
+	// Calculate visible items based on scroll position (for flatList)
 	let visibleItems = $derived.by(() => {
+		const total = flatList.length
 		const startIndex = Math.floor(scrollTop / itemHeight)
-		const endIndex = Math.min(startIndex + visibleCount, filteredItems.length)
+		const endIndex = Math.min(startIndex + visibleCount, total)
 		return {
 			startIndex: Math.max(0, startIndex),
 			endIndex,
-			items: filteredItems.slice(Math.max(0, startIndex), endIndex),
+			items: flatList.slice(Math.max(0, startIndex), endIndex),
+			total,
 		}
 	})
 
@@ -273,43 +304,50 @@
 					<li class="m-2 text-center text-sm text-gray-500">No items found</li>
 				{/if}
 
-				{#if filteredItems.length > 0}
-					<div class="relative max-h-80 overflow-y-auto" bind:this={scrollContainer} onscroll={handleScroll}>
+				{#if flatList.length > 0}
+					<div class="relative max-h-80 overflow-y-auto pr-2" bind:this={scrollContainer} onscroll={handleScroll}>
 						<!-- Virtual spacer for items before visible range -->
 						{#if visibleItems.startIndex > 0}
 							<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
 						{/if}
 
-						<!-- Render only visible items -->
-						{#each visibleItems.items as item (item.value)}
-							{@const isSelected = isItemSelected(item.value)}
-							<li style="height: {itemHeight}px;">
-								<button
-									class="flex h-full w-full items-center gap-2 {isSelected
-										? ' bg-primary text-primary-content hover:!bg-primary/70'
-										: ''}"
-									type="button"
-									onclick={() => {
-										toggleItemSelection(item.value)
-										searchEL?.focus()
-									}}>
-									{#if multiple}
-										<!-- Checkbox for multi-select -->
-										<input
-											type="checkbox"
-											class="checkbox checkbox-sm !text-primary-content pointer-events-none"
-											checked={isSelected}
-											readonly />
-									{/if}
-
-									<span class="flex-1 text-left">{item.label}</span>
-								</button>
-							</li>
+						<!-- Render only visible items (headers and options) -->
+						{#each visibleItems.items as entry (entry.type === 'header' ? 'header-' + entry.group : entry.item.value)}
+							{#if entry.type === 'header'}
+								<li
+									class="bg-base-200 top-0 z-10 flex items-center justify-center px-2 text-lg font-bold text-gray-700"
+									style="height: {itemHeight}px;">
+									{entry.group}
+								</li>
+							{:else}
+								{@const item = entry.item}
+								{@const isSelected = isItemSelected(item.value)}
+								<li style="height: {itemHeight}px;">
+									<button
+										class="flex h-full w-full items-center gap-2 {isSelected
+											? ' bg-primary text-primary-content hover:!bg-primary/70'
+											: ''}"
+										type="button"
+										onclick={() => {
+											toggleItemSelection(item.value)
+											searchEL?.focus()
+										}}>
+										{#if multiple}
+											<input
+												type="checkbox"
+												class="checkbox checkbox-sm !text-primary-content pointer-events-none"
+												checked={isSelected}
+												readonly />
+										{/if}
+										<span class="flex-1 text-left">{item.label}</span>
+									</button>
+								</li>
+							{/if}
 						{/each}
 
 						<!-- Virtual spacer for items after visible range -->
-						{#if visibleItems.endIndex < filteredItems.length}
-							<div style="height: {(filteredItems.length - visibleItems.endIndex) * itemHeight}px;"></div>
+						{#if visibleItems.endIndex < visibleItems.total}
+							<div style="height: {(visibleItems.total - visibleItems.endIndex) * itemHeight}px;"></div>
 						{/if}
 					</div>
 				{/if}

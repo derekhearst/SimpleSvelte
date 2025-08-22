@@ -10,6 +10,29 @@
 		{ value: 'angular', label: 'Angular' },
 		{ value: 'solid', label: 'SolidJS' },
 	]
+
+	// Grouped test data
+	let groupValueSmall = $state([])
+	let groupValueLarge = $state([])
+	const groupedOptionsSmall = [
+		{ value: 'a', label: 'Apple', group: 'Fruit' },
+		{ value: 'b', label: 'Banana', group: 'Fruit' },
+		{ value: 'c', label: 'Carrot', group: 'Vegetable' },
+		{ value: 'b1', label: 'Broccoli', group: 'Vegetable' },
+		{ value: 'w', label: 'Water', group: 'Drink' },
+		{ value: 'c2', label: 'Cola', group: 'Drink' },
+		{ value: 'x', label: 'Other (ungrouped)' },
+	]
+	// Large grouped list (100+ items, 5 groups)
+	const groupedOptionsLarge = Array.from({ length: 120 }, (_, i) => {
+		const groupNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
+		const group = groupNames[i % groupNames.length]
+		return {
+			value: `item${i + 1}`,
+			label: `Item ${i + 1}`,
+			group: group,
+		}
+	})
 </script>
 
 <div class="container mx-auto max-w-2xl p-8">
@@ -29,6 +52,43 @@
 			<strong>Selected:</strong>
 			{#if Array.isArray(value) && value.length > 0}
 				{value.join(', ')}
+			{:else}
+				None selected
+			{/if}
+		</div>
+	</div>
+
+	<!-- Grouping Test Section -->
+	<div class="mb-8">
+		<h2 class="mb-2 text-xl font-semibold">Test: Grouped Select (Small List)</h2>
+		<Select
+			bind:value={groupValueSmall}
+			options={groupedOptionsSmall}
+			label="Grouped Small List"
+			name="grouped-small"
+			multiple />
+		<div class="bg-base-200 rounded-box mt-2 p-2">
+			<strong>Selected:</strong>
+			{#if Array.isArray(groupValueSmall) && groupValueSmall.length > 0}
+				{groupValueSmall.join(', ')}
+			{:else}
+				None selected
+			{/if}
+		</div>
+	</div>
+
+	<div class="mb-8">
+		<h2 class="mb-2 text-xl font-semibold">Test: Grouped Select (Large List)</h2>
+		<Select
+			bind:value={groupValueLarge}
+			options={groupedOptionsLarge}
+			label="Grouped Large List"
+			name="grouped-large"
+			multiple />
+		<div class="bg-base-200 rounded-box mt-2 p-2">
+			<strong>Selected:</strong>
+			{#if Array.isArray(groupValueLarge) && groupValueLarge.length > 0}
+				{groupValueLarge.join(', ')}
 			{:else}
 				None selected
 			{/if}
