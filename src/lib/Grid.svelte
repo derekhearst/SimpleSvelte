@@ -10,7 +10,6 @@
 		type GridApi,
 		type GridOptions,
 	} from 'ag-grid-enterprise'
-	import { onMount } from 'svelte'
 
 	type Props = {
 		gridEl?: HTMLDivElement
@@ -34,12 +33,11 @@
 		}
 	})
 
-	onMount(() => {
+	$effect(() => {
 		if (!gridEl || gridApi) return
 		gridApi = createGrid(gridEl, {
 			...gridOptions,
 			theme: themeQuartz,
-			rowData: gridData,
 		})
 	})
 	// Keep it up to date if columns change
