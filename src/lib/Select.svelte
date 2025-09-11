@@ -46,10 +46,6 @@
 
 	let detailsOpen = $state(false)
 
-	$effect(() => {
-		if (onchange) onchange(value)
-	})
-
 	// Initialize value as array for multiple mode, ensure it's always an array when multiple
 	$effect(() => {
 		if (multiple && !Array.isArray(value)) {
@@ -82,6 +78,7 @@
 			value = itemValue
 			filter = items.find((item) => item.value === itemValue)?.label || ''
 			detailsOpen = false
+			if (onchange) onchange(value)
 			return
 		}
 
@@ -92,12 +89,14 @@
 		} else {
 			value = [...value, itemValue]
 		}
+		if (onchange) onchange(value)
 	}
 
 	// Remove specific item from multi-select
 	function removeSelectedItem(itemValue: any) {
 		if (Array.isArray(value)) {
 			value = value.filter((v) => v !== itemValue)
+			if (onchange) onchange(value)
 		}
 	}
 
@@ -106,6 +105,7 @@
 		value = multiple ? [] : undefined
 		filter = ''
 		detailsOpen = false
+		if (onchange) onchange(value)
 	}
 	let filter = $derived.by(() => {
 		if (multiple) return ''
@@ -287,6 +287,7 @@
 							onclick={() => {
 								const allValues = filteredItems.map((item) => item.value)
 								value = [...allValues]
+								if (onchange) onchange(value)
 							}}>
 							Select All
 						</button>
@@ -295,6 +296,7 @@
 							class="btn btn-sm hover:bg-base-content/10 grow"
 							onclick={() => {
 								value = []
+								if (onchange) onchange(value)
 							}}>
 							Clear All
 						</button>
