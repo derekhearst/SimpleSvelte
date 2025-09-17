@@ -20,7 +20,7 @@
 </script>
 
 <dialog bind:this={dialogEl} onclose={() => (open = false)} class="modal modal-middle overflow-auto">
-	<div class="modal-box max-w-max min-w-[32rem] pt-12">
+	<div class="modal-box max-w-max pt-12 md:min-w-[32rem]">
 		<form method="dialog">
 			<button
 				class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2"
