@@ -34,7 +34,7 @@
 	})
 
 	$effect(() => {
-		if (!gridEl || gridApi) return
+		if (!gridEl) return
 		gridApi = createGrid(gridEl, {
 			...gridOptions,
 			theme: themeQuartz,
