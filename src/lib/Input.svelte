@@ -85,6 +85,15 @@
 		}
 	}
 
+	// File input handlers - FileList is readonly
+	function getFiles() {
+		return value
+	}
+	function setFiles(fileList: FileList | null) {
+		// FileList is readonly, so we just set it directly
+		value = fileList
+	}
+
 	let inputClass = $derived.by(() => {
 		if (type == 'file') return 'file-input w-full'
 		if (type == 'checkbox') return 'checkbox '
@@ -111,7 +120,14 @@
 	{#if type == 'checkbox'}
 		<input bind:this={element} type="checkbox" {disabled} class={inputClass} {...rest} bind:checked={value} />
 	{:else if type == 'file'}
-		<input bind:this={element} {name} type="file" {disabled} class={inputClass} {...rest} />
+		<input
+			bind:this={element}
+			{name}
+			type="file"
+			{disabled}
+			class={inputClass}
+			{...rest}
+			bind:files={getFiles, setFiles} />
 	{:else}
 		<input
 			bind:this={element}
