@@ -14,7 +14,7 @@
 	type Props = {
 		gridEl?: HTMLDivElement
 		gridApi?: GridApi
-		gridData: any[] // Replace with your actual data type
+		gridData?: any[] // Replace with your actual data type
 		gridOptions: GridOptions
 		class?: string
 	}
