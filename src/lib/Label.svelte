@@ -2,6 +2,7 @@
 	import { type Snippet } from 'svelte'
 	type Props = {
 		class?: string
+		labelClass?: string
 		label: string | undefined
 		name?: string
 		optional?: boolean
@@ -10,13 +11,22 @@
 		error?: string
 	}
 
-	let { class: className = '', name = '', optional = false, label, disabled, children, error }: Props = $props()
+	let {
+		class: className = '',
+		labelClass = '',
+		name = '',
+		optional = false,
+		label,
+		disabled,
+		children,
+		error,
+	}: Props = $props()
 </script>
 
 {#if label}
 	<label class="flex w-full flex-col {className}" for={name}>
 		<div class="label mb-1 p-0 text-sm">
-			<span class="">{label}</span>
+			<span class={labelClass}>{label}</span>
 			{#if optional && !disabled}
 				<span class="label">(Optional)</span>
 			{/if}
