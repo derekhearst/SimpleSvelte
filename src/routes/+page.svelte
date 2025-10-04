@@ -33,6 +33,10 @@
 			group: group,
 		}
 	})
+
+	// Auto-scroll test data
+	let autoScrollSingleValue = $state('item75') // Pre-select item that's far down the list
+	let autoScrollMultiValue = $state(['item25', 'item85', 'item105']) // Pre-select multiple items scattered throughout
 </script>
 
 <div class="container mx-auto max-w-2xl p-8">
@@ -79,6 +83,7 @@
 
 	<div class="mb-8">
 		<h2 class="mb-2 text-xl font-semibold">Test: Grouped Select (Large List)</h2>
+
 		<Select
 			bind:value={groupValueLarge}
 			options={groupedOptionsLarge}
@@ -89,6 +94,46 @@
 			<strong>Selected:</strong>
 			{#if Array.isArray(groupValueLarge) && groupValueLarge.length > 0}
 				{groupValueLarge.join(', ')}
+			{:else}
+				None selected
+			{/if}
+		</div>
+	</div>
+
+	<!-- Auto-scroll Test Sections -->
+	<div class="mb-8">
+		<h2 class="mb-2 text-xl font-semibold">Test: Auto-scroll to Selected Item (Single Select)</h2>
+		<p class="mb-4 text-sm text-gray-600">
+			This select has "Item 75" pre-selected. When you open the dropdown, it should automatically scroll to center the
+			selected item.
+		</p>
+		<Select
+			bind:value={autoScrollSingleValue}
+			options={groupedOptionsLarge}
+			label="Auto-scroll Single Select"
+			name="auto-scroll-single" />
+		<div class="bg-base-200 rounded-box mt-2 p-2">
+			<strong>Selected:</strong>
+			{autoScrollSingleValue || 'None selected'}
+		</div>
+	</div>
+
+	<div class="mb-8">
+		<h2 class="mb-2 text-xl font-semibold">Test: Auto-scroll to Selected Items (Multi Select)</h2>
+		<p class="mb-4 text-sm text-gray-600">
+			This select has multiple items pre-selected (Item 25, 85, 105). When you open the dropdown, it should scroll to
+			the first selected item.
+		</p>
+		<Select
+			bind:value={autoScrollMultiValue}
+			options={groupedOptionsLarge}
+			label="Auto-scroll Multi Select"
+			name="auto-scroll-multi"
+			multiple />
+		<div class="bg-base-200 rounded-box mt-2 p-2">
+			<strong>Selected:</strong>
+			{#if Array.isArray(autoScrollMultiValue) && autoScrollMultiValue.length > 0}
+				{autoScrollMultiValue.join(', ')}
 			{:else}
 				None selected
 			{/if}

@@ -189,6 +189,35 @@
 		scrollTop = target.scrollTop
 	}
 
+	// Scroll to selected item when dropdown opens
+	$effect(() => {
+		if (detailsOpen && scrollContainer) {
+			// Find the index of the selected item in the flat list
+			let selectedIndex = -1
+
+			if (!multiple && selectedItem) {
+				// For single select, find the selected item
+				selectedIndex = flatList.findIndex(
+					(entry) => entry.type === 'option' && entry.item.value === selectedItem.value,
+				)
+			} else if (multiple && selectedItems.length > 0) {
+				// For multi select, find the first selected item
+				selectedIndex = flatList.findIndex(
+					(entry) => entry.type === 'option' && selectedItems.some((selected) => selected.value === entry.item.value),
+				)
+			}
+
+			if (selectedIndex >= 0) {
+				// Calculate scroll position to center the selected item
+				const targetScrollTop = Math.max(0, selectedIndex * itemHeight - containerHeight / 2 + itemHeight / 2)
+
+				// Update scroll position
+				scrollContainer.scrollTop = targetScrollTop
+				scrollTop = targetScrollTop
+			}
+		}
+	})
+
 	const errorText = $derived.by(() => {
 		if (error) return error
 		if (!name) return undefined
