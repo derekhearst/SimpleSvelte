@@ -107,9 +107,16 @@
 		detailsOpen = false
 		if (onchange) onchange(value)
 	}
-	let filter = $derived.by(() => {
-		if (multiple) return ''
-		return selectedItem ? selectedItem.label : ''
+
+	let filter = $state('')
+
+	// Sync filter with selected item for single select mode
+	$effect(() => {
+		if (!multiple && selectedItem && !detailsOpen) {
+			filter = selectedItem.label
+		} else if (!multiple && !selectedItem && !detailsOpen) {
+			filter = ''
+		}
 	})
 
 	let filteredItems = $derived.by(() => {
