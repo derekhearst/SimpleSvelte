@@ -96,7 +96,7 @@
 
 	let inputClass = $derived.by(() => {
 		if (type == 'file') return 'file-input w-full'
-		if (type == 'checkbox') return 'checkbox '
+		if (type == 'checkbox') return 'checkbox  checkbox-lg'
 		return 'input w-full'
 	})
 
