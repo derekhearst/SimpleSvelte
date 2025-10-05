@@ -125,6 +125,7 @@
 			{name}
 			type="file"
 			{disabled}
+			{required}
 			class={inputClass}
 			{...rest}
 			bind:files={getFiles, setFiles} />
