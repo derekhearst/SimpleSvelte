@@ -34,28 +34,30 @@
 	})
 
 	$effect(() => {
-		if (!gridEl || gridApi) return
+		if (!gridEl) return
 
-		gridApi = createGrid(gridEl, {
-			...gridOptions,
-			theme: themeQuartz,
-		})
+		// Only create grid if it doesn't exist yet
+		if (!gridApi) {
+			gridApi = createGrid(gridEl, {
+				...gridOptions,
+				theme: themeQuartz,
+				rowData: gridData,
+			})
+		} else {
+			// Update existing grid
+			gridApi.updateGridOptions({
+				...gridOptions,
+				rowData: gridData,
+			})
+		}
 
-		// Cleanup function to destroy grid when component unmounts or effect re-runs
+		// Cleanup function to destroy grid when component unmounts
 		return () => {
 			if (gridApi) {
 				gridApi.destroy()
 				gridApi = undefined
 			}
 		}
-	})
-	// Keep it up to date if columns change
-	$effect(() => {
-		if (gridApi) gridApi.updateGridOptions(gridOptions)
-	})
-
-	$effect(() => {
-		if (gridApi) gridApi.updateGridOptions({ rowData: gridData })
 	})
 </script>
 
