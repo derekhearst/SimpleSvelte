@@ -34,11 +34,20 @@
 	})
 
 	$effect(() => {
-		if (!gridEl) return
+		if (!gridEl || gridApi) return
+
 		gridApi = createGrid(gridEl, {
 			...gridOptions,
 			theme: themeQuartz,
 		})
+
+		// Cleanup function to destroy grid when component unmounts or effect re-runs
+		return () => {
+			if (gridApi) {
+				gridApi.destroy()
+				gridApi = undefined
+			}
+		}
 	})
 	// Keep it up to date if columns change
 	$effect(() => {
