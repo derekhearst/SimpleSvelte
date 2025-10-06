@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte'
 	import { env } from '$env/dynamic/public'
 	import {
 		AllEnterpriseModule,
@@ -26,27 +27,17 @@
 		class: gridClass = 'grow',
 	}: Props = $props()
 
-	$effect(() => {
-		ModuleRegistry.registerModules([AllEnterpriseModule, ClientSideRowModelModule])
-		if (env.PUBLIC_AGGRID_KEY) {
-			LicenseManager.setLicenseKey(env.PUBLIC_AGGRID_KEY)
-		}
-	})
+	// Register modules once
 
-	$effect(() => {
-		if (!gridEl) return
-
-		// Only create grid if it doesn't exist yet
-		if (!gridApi) {
+	onMount(() => {
+		if (gridEl) {
+			ModuleRegistry.registerModules([AllEnterpriseModule, ClientSideRowModelModule])
+			if (env.PUBLIC_AGGRID_KEY) {
+				LicenseManager.setLicenseKey(env.PUBLIC_AGGRID_KEY)
+			}
 			gridApi = createGrid(gridEl, {
 				...gridOptions,
 				theme: themeQuartz,
-				rowData: gridData,
-			})
-		} else {
-			// Update existing grid
-			gridApi.updateGridOptions({
-				...gridOptions,
 				rowData: gridData,
 			})
 		}
@@ -57,6 +48,16 @@
 				gridApi.destroy()
 				gridApi = undefined
 			}
+		}
+	})
+
+	// Update grid when options or data change
+	$effect(() => {
+		if (gridApi) {
+			gridApi.updateGridOptions({
+				...gridOptions,
+				rowData: gridData,
+			})
 		}
 	})
 </script>
