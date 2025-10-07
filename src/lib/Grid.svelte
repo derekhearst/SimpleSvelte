@@ -58,6 +58,7 @@
 				...gridOptions,
 				rowData: gridData,
 			})
+			gridApi.refreshCells()
 		}
 	})
 </script>
