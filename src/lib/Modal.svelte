@@ -11,10 +11,12 @@
 	}
 
 	$effect(() => {
+		if (!dialogEl) return
+
 		if (open) {
-			dialogEl?.showModal()
+			dialogEl.showModal()
 		} else {
-			dialogEl?.close()
+			dialogEl.close()
 		}
 	})
 </script>
