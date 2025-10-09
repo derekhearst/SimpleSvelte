@@ -2,7 +2,7 @@
 	import { clickOutside } from './utils.js'
 	import Input from './Input.svelte'
 	import Label from './Label.svelte'
-	import { settled, tick } from 'svelte'
+	import { tick } from 'svelte'
 	type Option = {
 		value: any
 		label: any
@@ -78,11 +78,11 @@
 		if (!multiple) {
 			detailsOpen = false
 			filter = items.find((item) => item.value === itemValue)?.label || ''
-			await tick()
 			disabled = true
+			await tick()
 			value = itemValue
 			if (onchange) onchange(value)
-			await settled()
+
 			disabled = false
 			return
 		}
