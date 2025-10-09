@@ -77,9 +77,9 @@
 	async function toggleItemSelection(itemValue: any) {
 		if (!multiple) {
 			detailsOpen = false
+			filter = items.find((item) => item.value === itemValue)?.label || ''
 			await tick()
 			value = itemValue
-			filter = items.find((item) => item.value === itemValue)?.label || ''
 			if (onchange) onchange(value)
 			return
 		}
