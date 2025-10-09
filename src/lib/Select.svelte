@@ -2,6 +2,7 @@
 	import { clickOutside } from './utils.js'
 	import Input from './Input.svelte'
 	import Label from './Label.svelte'
+	import { tick } from 'svelte'
 	type Option = {
 		value: any
 		label: any
@@ -73,11 +74,12 @@
 	}
 
 	// Toggle item selection in multi-select mode
-	function toggleItemSelection(itemValue: any) {
+	async function toggleItemSelection(itemValue: any) {
 		if (!multiple) {
+			detailsOpen = false
+			await tick()
 			value = itemValue
 			filter = items.find((item) => item.value === itemValue)?.label || ''
-			detailsOpen = false
 			if (onchange) onchange(value)
 			return
 		}
