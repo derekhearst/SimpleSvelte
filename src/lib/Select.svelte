@@ -181,6 +181,18 @@
 	// Calculate visible items based on scroll position (for flatList)
 	let visibleItems = $derived.by(() => {
 		const total = flatList.length
+		const totalHeight = total * itemHeight
+
+		// If content is shorter than container, show everything from start
+		if (totalHeight <= containerHeight) {
+			return {
+				startIndex: 0,
+				endIndex: total,
+				items: flatList,
+				total,
+			}
+		}
+
 		const startIndex = Math.floor(scrollTop / itemHeight)
 		const endIndex = Math.min(startIndex + visibleCount, total)
 		return {
@@ -189,9 +201,7 @@
 			items: flatList.slice(Math.max(0, startIndex), endIndex),
 			total,
 		}
-	})
-
-	// Handle scroll events
+	}) // Handle scroll events
 	function handleScroll(e: Event) {
 		const target = e.target as HTMLDivElement
 		scrollTop = target.scrollTop
@@ -223,11 +233,8 @@
 				// Set state first so virtual list calculates correctly
 				scrollTop = targetScrollTop
 				scrollContainer.scrollTop = targetScrollTop
-			} else {
-				// No selected item, reset scroll to top
-				scrollTop = 0
-				scrollContainer.scrollTop = 0
 			}
+			// If no selected item, scrollTop stays at 0 (already set when dropdown was closed)
 		}
 	})
 

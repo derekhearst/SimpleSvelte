@@ -11,6 +11,18 @@
 		{ value: 'solid', label: 'SolidJS' },
 	]
 
+	// Small list with 7 items
+	let smallValue = $state()
+	const smallOptions = [
+		{ value: 1, label: 'Option 1' },
+		{ value: 2, label: 'Option 2' },
+		{ value: 3, label: 'Option 3' },
+		{ value: 4, label: 'Option 4' },
+		{ value: 5, label: 'Option 5' },
+		{ value: 6, label: 'Option 6' },
+		{ value: 7, label: 'Option 7' },
+	]
+
 	// Grouped test data
 	let groupValueSmall = $state([])
 	let groupValueLarge = $state([])
@@ -42,6 +54,15 @@
 <div class="container mx-auto max-w-2xl p-8">
 	<h1 class="mb-4 text-4xl font-bold">Welcome to SimpleSvelte</h1>
 	<p class="mb-8 text-lg">Create your package using @sveltejs/package and preview/showcase your work with SvelteKit</p>
+
+	<div class="mb-8">
+		<h2 class="mb-4 text-2xl font-semibold">Small Select (7 Items)</h2>
+		<Select bind:value={smallValue} options={smallOptions} label="Choose an option" name="small-select" />
+		<div class="bg-base-200 rounded-box mt-4 p-4">
+			<strong>Selected:</strong>
+			{smallValue || 'None selected'}
+		</div>
+	</div>
 
 	<div class="mb-8">
 		<h2 class="mb-4 text-2xl font-semibold">Multi-Select Component Demo</h2>
