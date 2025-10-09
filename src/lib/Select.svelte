@@ -2,6 +2,7 @@
 	import { clickOutside } from './utils.js'
 	import Input from './Input.svelte'
 	import Label from './Label.svelte'
+	import { tick } from 'svelte'
 	type Option = {
 		value: any
 		label: any
@@ -73,10 +74,17 @@
 	}
 
 	// Toggle item selection in multi-select mode
-	function toggleItemSelection(itemValue: any) {
+	async function toggleItemSelection(itemValue: any) {
 		if (!multiple) {
-			detailsOpen = false
+			// Close dropdown and update filter immediately
 			filter = items.find((item) => item.value === itemValue)?.label || ''
+			detailsOpen = false
+
+			// Wait for DOM update so details closes properly
+			await tick()
+
+			// Update value and call onchange - these happen synchronously
+			// even though we're in an async function
 			value = itemValue
 			if (onchange) onchange(value)
 			return
@@ -211,9 +219,14 @@
 				// Calculate scroll position to center the selected item
 				const targetScrollTop = Math.max(0, selectedIndex * itemHeight - containerHeight / 2 + itemHeight / 2)
 
-				// Update scroll position
-				scrollContainer.scrollTop = targetScrollTop
+				// Update both scroll state and actual scroll position
+				// Set state first so virtual list calculates correctly
 				scrollTop = targetScrollTop
+				scrollContainer.scrollTop = targetScrollTop
+			} else {
+				// No selected item, reset scroll to top
+				scrollTop = 0
+				scrollContainer.scrollTop = 0
 			}
 		}
 	})
