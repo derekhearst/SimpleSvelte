@@ -177,5 +177,4 @@
 	<p>
 		Visit <a href="https://svelte.dev/docs/kit" class="link link-primary">svelte.dev/docs/kit</a> to read the documentation
 	</p>
-	<p><a href="/test" class="link link-primary">View comprehensive test page →</a></p>
 </div>

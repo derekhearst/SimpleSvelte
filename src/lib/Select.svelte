@@ -110,7 +110,7 @@
 
 	// Clear all selections
 	function clearAll() {
-		value = multiple ? [] : undefined
+		value = multiple ? [] : null
 		filter = ''
 		detailsOpen = false
 		if (onchange) onchange(value)
