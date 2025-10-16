@@ -14,20 +14,15 @@
 
 	type Props = {
 		gridEl?: HTMLDivElement
-		gridApi?: GridApi
 		gridData?: any[] // Replace with your actual data type
 		gridOptions: GridOptions
 		class?: string
 	}
-	let {
-		gridEl = $bindable(),
-		gridApi = $bindable(),
-		gridData,
-		gridOptions,
-		class: gridClass = 'grow',
-	}: Props = $props()
+	let { gridEl = $bindable(), gridData, gridOptions, class: gridClass = 'grow' }: Props = $props()
 
 	// Register modules once
+
+	let gridApi: GridApi | undefined
 
 	onMount(() => {
 		if (gridEl) {
