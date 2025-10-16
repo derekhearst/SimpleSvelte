@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, settled, tick } from 'svelte'
+	import { onMount } from 'svelte'
 	import { env } from '$env/dynamic/public'
 	import {
 		AllEnterpriseModule,
@@ -24,13 +24,9 @@
 
 	let gridApi: GridApi | undefined
 
-	onMount(async () => {
+	onMount(() => {
 		if (gridEl) {
 			console.log('📊 Grid: Initializing AG Grid...')
-			await tick()
-			await settled()
-			console.log('🔄 Grid: DOM settled, proceeding with grid setup')
-
 			ModuleRegistry.registerModules([AllEnterpriseModule, ClientSideRowModelModule])
 
 			if (env.PUBLIC_AGGRID_KEY) {
@@ -55,10 +51,8 @@
 				console.log('✅ Grid: Initialized with server-side data source')
 			}
 		}
-	})
 
-	// Cleanup when component unmounts
-	$effect(() => {
+		// Cleanup function to destroy grid when component unmounts
 		return () => {
 			if (gridApi) {
 				console.log('🧹 Grid: Cleaning up and destroying grid instance')
