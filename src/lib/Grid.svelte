@@ -23,37 +23,61 @@
 	// Register modules once
 
 	let gridApi: GridApi | undefined
+	let initCheckInterval: ReturnType<typeof setInterval> | undefined
 
-	onMount(() => {
-		if (gridEl) {
-			console.log('📊 Grid: Initializing AG Grid...')
-			ModuleRegistry.registerModules([AllEnterpriseModule, ClientSideRowModelModule])
+	function initializeGrid() {
+		if (!gridEl || gridApi) return
 
-			if (env.PUBLIC_AGGRID_KEY) {
-				LicenseManager.setLicenseKey(env.PUBLIC_AGGRID_KEY)
-				console.log('✅ Grid: License key applied successfully')
-			} else {
-				console.warn('⚠️ Grid: No license key found. Running in trial mode.')
-			}
+		console.log('📊 Grid: Initializing AG Grid...')
+		ModuleRegistry.registerModules([AllEnterpriseModule, ClientSideRowModelModule])
 
-			const gridConfig = {
-				...gridOptions,
-				theme: themeQuartz,
-				...(gridData !== undefined && { rowData: gridData }),
-			}
-
-			gridApi = createGrid(gridEl, gridConfig)
-
-			if (gridData !== undefined) {
-				const rowCount = gridData.length
-				console.log(`✅ Grid: Initialized with ${rowCount} row(s) (client-side)`)
-			} else {
-				console.log('✅ Grid: Initialized with server-side data source')
-			}
+		if (env.PUBLIC_AGGRID_KEY) {
+			LicenseManager.setLicenseKey(env.PUBLIC_AGGRID_KEY)
+			console.log('✅ Grid: License key applied successfully')
+		} else {
+			console.warn('⚠️ Grid: No license key found. Running in trial mode.')
 		}
 
-		// Cleanup function to destroy grid when component unmounts
+		const gridConfig = {
+			...gridOptions,
+			theme: themeQuartz,
+			...(gridData !== undefined && { rowData: gridData }),
+		}
+
+		gridApi = createGrid(gridEl, gridConfig)
+
+		if (gridData !== undefined) {
+			const rowCount = gridData.length
+			console.log(`✅ Grid: Initialized with ${rowCount} row(s) (client-side)`)
+		} else {
+			console.log('✅ Grid: Initialized with server-side data source')
+		}
+
+		// Clear the interval once grid is created
+		if (initCheckInterval) {
+			clearInterval(initCheckInterval)
+			initCheckInterval = undefined
+		}
+	}
+
+	onMount(() => {
+		// Try to initialize immediately
+		initializeGrid()
+
+		// If grid wasn't created, set up interval to keep checking
+		if (!gridApi) {
+			console.log('⏱️ Grid: Element not ready, checking every 100ms...')
+			initCheckInterval = setInterval(() => {
+				initializeGrid()
+			}, 100)
+		}
+
+		// Cleanup function to destroy grid and clear interval when component unmounts
 		return () => {
+			if (initCheckInterval) {
+				clearInterval(initCheckInterval)
+				initCheckInterval = undefined
+			}
 			if (gridApi) {
 				console.log('🧹 Grid: Cleaning up and destroying grid instance')
 				gridApi.destroy()
