@@ -24,11 +24,22 @@
 
 	let gridApi: GridApi | undefined
 	let initCheckInterval: ReturnType<typeof setInterval> | undefined
+	let attemptCount = 0
 
 	function initializeGrid() {
-		if (!gridEl || gridApi) return
+		if (!gridEl) {
+			console.log('⏳ Grid: Element not available yet')
+			return
+		}
 
-		console.log('📊 Grid: Initializing AG Grid...')
+		if (gridApi) {
+			console.log('ℹ️ Grid: Already initialized, skipping')
+			return
+		}
+
+		attemptCount++
+		console.log(`📊 Grid: Initializing AG Grid (attempt ${attemptCount})...`)
+		console.log('📋 Grid: Registering modules...')
 		ModuleRegistry.registerModules([AllEnterpriseModule, ClientSideRowModelModule])
 
 		if (env.PUBLIC_AGGRID_KEY) {
@@ -44,6 +55,7 @@
 			...(gridData !== undefined && { rowData: gridData }),
 		}
 
+		console.log('🎨 Grid: Creating grid instance...')
 		gridApi = createGrid(gridEl, gridConfig)
 
 		if (gridData !== undefined) {
@@ -55,12 +67,15 @@
 
 		// Clear the interval once grid is created
 		if (initCheckInterval) {
+			console.log('⏹️ Grid: Stopping initialization checks')
 			clearInterval(initCheckInterval)
 			initCheckInterval = undefined
 		}
 	}
 
 	onMount(() => {
+		console.log('🚀 Grid: Component mounted')
+
 		// Try to initialize immediately
 		initializeGrid()
 
@@ -74,14 +89,17 @@
 
 		// Cleanup function to destroy grid and clear interval when component unmounts
 		return () => {
+			console.log('💥 Grid: Component unmounting')
 			if (initCheckInterval) {
+				console.log('⏹️ Grid: Clearing initialization interval')
 				clearInterval(initCheckInterval)
 				initCheckInterval = undefined
 			}
 			if (gridApi) {
-				console.log('🧹 Grid: Cleaning up and destroying grid instance')
+				console.log('🧹 Grid: Destroying grid instance')
 				gridApi.destroy()
 				gridApi = undefined
+				console.log('✅ Grid: Cleanup complete')
 			}
 		}
 	})
@@ -90,13 +108,20 @@
 	$effect(() => {
 		if (gridApi && gridData !== undefined) {
 			const rowCount = gridData.length
-			console.log(`🔄 Grid: Updating grid with ${rowCount} row(s)`)
-			gridApi.updateGridOptions({
-				...gridOptions,
-				rowData: gridData,
-			})
-			gridApi.refreshCells()
-			console.log('✅ Grid: Data update complete')
+			console.log(`🔄 Grid: Data changed, updating grid with ${rowCount} row(s)`)
+
+			try {
+				gridApi.updateGridOptions({
+					...gridOptions,
+					rowData: gridData,
+				})
+				gridApi.refreshCells()
+				console.log('✅ Grid: Data update complete')
+			} catch (error) {
+				console.error('❌ Grid: Error updating data:', error)
+			}
+		} else if (!gridApi && gridData !== undefined) {
+			console.log('⚠️ Grid: Data available but grid not initialized yet')
 		}
 	})
 </script>
