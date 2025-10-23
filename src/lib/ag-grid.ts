@@ -664,13 +664,7 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 
 		// Check if this is a boolean filter (values are "Yes"/"No", "true"/"false", or boolean primitives)
 		const isBooleanFilter = normalizedValues.every(
-			(v) => 
-				v === 'Yes' || 
-				v === 'No' || 
-				v === 'true' || 
-				v === 'false' || 
-				v === true || 
-				v === false
+			(v) => v === 'Yes' || v === 'No' || v === 'true' || v === 'false' || v === true || v === false,
 		)
 
 		if (isBooleanFilter) {
