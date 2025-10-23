@@ -628,7 +628,7 @@ function normalizeValue(value: unknown, fieldName?: string): unknown {
 	}
 
 	if (Array.isArray(value)) {
-		return value.map(v => normalizeValue(v, fieldName))
+		return value.map((v) => normalizeValue(v, fieldName))
 	}
 	if (value && typeof value === 'object') {
 		const normalized: Record<string, unknown> = {}
