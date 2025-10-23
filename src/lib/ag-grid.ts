@@ -408,13 +408,22 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 					// If no dbField, skip adding to database query (pure computation)
 					// Sorting will need to be handled client-side or in-memory
 				} else {
-					// Not a computed field, use column ID directly
-					orderBy.push({ [sort.colId]: sort.sort })
+					// Not a computed field, check if it's a nested field path
+					if (sort.colId.includes('.')) {
+						orderBy.push(createNestedSort(sort.colId, sort.sort))
+					} else {
+						// Simple field, use directly
+						orderBy.push({ [sort.colId]: sort.sort })
+					}
 				}
 			}
 		} else if (config.defaultSort) {
 			for (const [field, direction] of Object.entries(config.defaultSort)) {
-				orderBy.push({ [field]: direction })
+				if (field.includes('.')) {
+					orderBy.push(createNestedSort(field, direction))
+				} else {
+					orderBy.push({ [field]: direction })
+				}
 			}
 		}
 
@@ -688,14 +697,27 @@ function applyNestedFilter<TWhereInput>(where: TWhereInput, path: string, value:
 
 /**
  * Creates a nested sort object (e.g., 'location.name' -> { location: { name: 'asc' } })
+ * Handles deeply nested paths like 'user.profile.name' -> { user: { profile: { name: 'asc' } } }
  */
 function createNestedSort(path: string, direction: 'asc' | 'desc'): Record<string, unknown> {
 	if (!path.includes('.')) {
 		return { [path]: direction }
 	}
 
-	const [relation, field] = path.split('.')
-	return { [relation]: { [field]: direction } }
+	const parts = path.split('.')
+	const result: Record<string, unknown> = {}
+	
+	// Build nested structure from outermost to innermost
+	let current = result
+	for (let i = 0; i < parts.length - 1; i++) {
+		current[parts[i]] = {}
+		current = current[parts[i]] as Record<string, unknown>
+	}
+	
+	// Set the final field to the sort direction
+	current[parts[parts.length - 1]] = direction
+	
+	return result
 }
 
 /**
