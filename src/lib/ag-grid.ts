@@ -440,7 +440,12 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 					// Auto-extract nested value (e.g., 'location.name')
 					groupValue = String(getNestedValue(record, computedField.dbField) ?? '')
 				} else {
-					groupValue = String((record as Record<string, unknown>)[groupColumn!.id] ?? '')
+					// Support nested field paths like 'location.name' by traversing the object
+					if (groupColumn!.id.includes('.')) {
+						groupValue = String(getNestedValue(record, groupColumn!.id) ?? '')
+					} else {
+						groupValue = String((record as Record<string, unknown>)[groupColumn!.id] ?? '')
+					}
 				}
 
 				if (groupValue) {
