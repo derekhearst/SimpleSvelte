@@ -651,12 +651,12 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 	// Number/Date filter with type (e.g., equals, lessThan, greaterThan, inRange)
 	if ('filterType' in filter || 'type' in filter) {
 		const filterType = (filter.filterType || filter.type) as string
-		
+
 		// Handle simple comparison operators
 		if ('filter' in filter && filter.filter !== null && filter.filter !== undefined) {
 			const normalizedValue = normalizeValue(filter.filter, field)
 			const condition: Record<string, unknown> = {}
-			
+
 			switch (filterType) {
 				case 'equals':
 					if (field.includes('.')) {
@@ -696,7 +696,7 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 					condition.mode = 'insensitive'
 					break
 			}
-			
+
 			if (Object.keys(condition).length > 0) {
 				if (field.includes('.')) {
 					applyNestedFilter(where, field, condition)
@@ -706,20 +706,20 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 			}
 			return
 		}
-		
+
 		// Handle inRange (for number and date filters)
 		if (filterType === 'inRange' && 'filter' in filter && 'filterTo' in filter) {
 			const normalizedFrom = normalizeValue(filter.filter, field)
 			const normalizedTo = normalizeValue(filter.filterTo, field)
 			const rangeCondition: Record<string, unknown> = {}
-			
+
 			if (normalizedFrom !== null && normalizedFrom !== undefined) {
 				rangeCondition.gte = normalizedFrom
 			}
 			if (normalizedTo !== null && normalizedTo !== undefined) {
 				rangeCondition.lte = normalizedTo
 			}
-			
+
 			if (Object.keys(rangeCondition).length > 0) {
 				if (field.includes('.')) {
 					applyNestedFilter(where, field, rangeCondition)
