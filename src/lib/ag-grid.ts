@@ -917,7 +917,9 @@ export const defaultSSRMColDef = {
 	floatingFilter: true,
 	enableRowGroup: true,
 	flex: 1,
-	menuTabs: ['filterMenuTab', 'generalMenuTab'],
+	// Cast to AG Grid's ColumnMenuTab[] to satisfy TypeScript (mutable array of menu tab names)
+	// We keep the runtime value as string literals which AG Grid accepts.
+	menuTabs: ['filterMenuTab', 'generalMenuTab'] as unknown as import('ag-grid-community').ColumnMenuTab[],
 }
 
 /**
