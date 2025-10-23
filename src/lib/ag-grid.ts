@@ -660,11 +660,39 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 
 	// Set filter
 	if ('values' in filter && Array.isArray(filter.values)) {
-		const normalizedValues = normalizeValue(filter.values)
-		if (field.includes('.')) {
-			applyNestedFilter(where, field, { in: normalizedValues })
+		const normalizedValues = normalizeValue(filter.values) as unknown[]
+
+		// Check if this is a boolean filter (values are "Yes"/"No" or true/false)
+		const isBooleanFilter = normalizedValues.every((v) => v === 'Yes' || v === 'No' || v === true || v === false)
+
+		if (isBooleanFilter) {
+			// Convert "Yes"/"No" to boolean for Prisma
+			const booleanValues = normalizedValues.map((v) => {
+				if (v === 'Yes' || v === true) return true
+				if (v === 'No' || v === false) return false
+				return v
+			})
+
+			// For boolean fields, use equals or OR instead of `in`
+			if (booleanValues.length === 1) {
+				// Single value - use direct equality
+				if (field.includes('.')) {
+					applyNestedFilter(where, field, booleanValues[0])
+				} else {
+					;(where as Record<string, unknown>)[field] = booleanValues[0]
+				}
+			} else if (booleanValues.length === 2) {
+				// Both true and false selected - don't filter at all
+				// (this means "show all")
+				return
+			}
 		} else {
-			;(where as Record<string, unknown>)[field] = { in: normalizedValues }
+			// Non-boolean set filter - use `in` operator
+			if (field.includes('.')) {
+				applyNestedFilter(where, field, { in: normalizedValues })
+			} else {
+				;(where as Record<string, unknown>)[field] = { in: normalizedValues }
+			}
 		}
 	}
 
@@ -1153,6 +1181,15 @@ export const filterConfigs = {
 	set: {
 		filter: 'agSetColumnFilter',
 		filterParams: {
+			buttons: ['clear'],
+		},
+	},
+
+	/** Boolean filter (Yes/No) */
+	boolean: {
+		filter: 'agSetColumnFilter',
+		filterParams: {
+			values: ['Yes', 'No'],
 			buttons: ['clear'],
 		},
 	},
