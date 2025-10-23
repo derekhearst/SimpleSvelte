@@ -349,8 +349,10 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 			for (let i = 0; i < groupKeys.length; i++) {
 				const col = rowGroupCols[i]
 				const key = groupKeys[i]
+				// Get the field name for type checking
+				const fieldName = col.field || col.id
 				// Normalize date strings to ISO-8601 format for Prisma
-				const normalizedKey = normalizeValue(key)
+				const normalizedKey = normalizeValue(key, fieldName)
 
 				const computedField = config.computedFields?.find((cf) => cf.columnId === col.id)
 				if (computedField?.groupHandler) {
@@ -603,16 +605,21 @@ function toISOString(value: unknown): string | unknown {
 /**
  * Normalizes a value for database queries (converts dates to ISO-8601, parses numeric strings)
  */
-function normalizeValue(value: unknown): unknown {
+function normalizeValue(value: unknown, fieldName?: string): unknown {
 	// Handle dates (but not numeric strings that look like dates)
 	if (value instanceof Date || (typeof value === 'string' && isDateString(value))) {
 		return toISOString(value)
 	}
 
 	// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
+	// BUT: Skip conversion for fields containing "jde" (these are always strings)
 	if (typeof value === 'string') {
 		const trimmed = value.trim()
 		if (/^-?\d+\.?\d*$/.test(trimmed)) {
+			// Don't convert if field name contains "jde" (case insensitive)
+			if (fieldName && /jde/i.test(fieldName)) {
+				return value
+			}
 			const num = Number(trimmed)
 			if (!isNaN(num)) {
 				return num
@@ -621,12 +628,12 @@ function normalizeValue(value: unknown): unknown {
 	}
 
 	if (Array.isArray(value)) {
-		return value.map(normalizeValue)
+		return value.map(v => normalizeValue(v, fieldName))
 	}
 	if (value && typeof value === 'object') {
 		const normalized: Record<string, unknown> = {}
 		for (const [key, val] of Object.entries(value)) {
-			normalized[key] = normalizeValue(val)
+			normalized[key] = normalizeValue(val, key)
 		}
 		return normalized
 	}
