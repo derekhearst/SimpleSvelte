@@ -568,7 +568,7 @@ function normalizeValue(value: unknown): unknown {
 	if (value instanceof Date || (typeof value === 'string' && isDateString(value))) {
 		return toISOString(value)
 	}
-	
+
 	// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
 	if (typeof value === 'string') {
 		const trimmed = value.trim()
@@ -579,7 +579,7 @@ function normalizeValue(value: unknown): unknown {
 			}
 		}
 	}
-	
+
 	if (Array.isArray(value)) {
 		return value.map(normalizeValue)
 	}
