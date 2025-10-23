@@ -400,9 +400,15 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 		if (sortModel && sortModel.length > 0) {
 			for (const sort of sortModel) {
 				const computedField = config.computedFields?.find((cf) => cf.columnId === sort.colId)
-				if (computedField?.dbField) {
-					orderBy.push(createNestedSort(computedField.dbField, sort.sort))
+				if (computedField) {
+					// If computed field has a dbField, use it for sorting
+					if (computedField.dbField) {
+						orderBy.push(createNestedSort(computedField.dbField, sort.sort))
+					}
+					// If no dbField, skip adding to database query (pure computation)
+					// Sorting will need to be handled client-side or in-memory
 				} else {
+					// Not a computed field, use column ID directly
 					orderBy.push({ [sort.colId]: sort.sort })
 				}
 			}
