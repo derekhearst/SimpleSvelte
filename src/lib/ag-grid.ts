@@ -524,9 +524,24 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 
 	// Date filter
 	if ('dateFrom' in filter || 'dateTo' in filter) {
+		// Parse dates safely and only add valid Date objects to the where clause.
+		// This avoids passing `new Date("Invalid Date")` to database drivers like Prisma.
 		const dateCondition: Record<string, Date> = {}
-		if (filter.dateFrom) dateCondition.gte = new Date(filter.dateFrom as string)
-		if (filter.dateTo) dateCondition.lte = new Date(filter.dateTo as string)
+
+		const parseDateSafe = (v: unknown): Date | undefined => {
+			if (v == null) return undefined
+			const d = new Date(String(v))
+			return isNaN(d.getTime()) ? undefined : d
+		}
+
+		const from = parseDateSafe(filter.dateFrom)
+		const to = parseDateSafe(filter.dateTo)
+
+		if (from) dateCondition.gte = from
+		if (to) dateCondition.lte = to
+
+		// If neither date parsed, skip adding a date condition entirely
+		if (Object.keys(dateCondition).length === 0) return
 
 		if (field.includes('.')) {
 			applyNestedFilter(where, field, dateCondition)
