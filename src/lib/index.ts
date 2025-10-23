@@ -5,7 +5,7 @@ export { default as TextArea } from './TextArea.svelte'
 export { default as Modal } from './Modal.svelte'
 export { default as Grid } from './Grid.svelte'
 export { Pop } from './pop.js'
-export { clickOutside, FormHelper, RoleHelper as roleHelper } from './utils.js'
+export { clickOutside, FormHelper, RoleHelper as roleHelper, formatDate } from './utils.js'
 
 // AG Grid Server-Side Row Model API
 export {

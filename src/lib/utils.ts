@@ -115,3 +115,13 @@ export function clickOutside(element: HTMLElement, callbackFunction: () => void)
 		},
 	}
 }
+
+export function formatDate(date: Date | string | undefined | null): string {
+	if (!date) return ''
+	const d = new Date(date)
+	if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
+		return d.toISOString().split('T')[0].replaceAll('-', '/')
+	} else {
+		return d.toLocaleDateString()
+	}
+}
