@@ -480,8 +480,33 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 					return groupRow
 				})
 				.sort((a, b) => {
+					// Respect sortModel if provided
+					if (sortModel && sortModel.length > 0) {
+						// Use the first sort that matches a group column or any sort
+						const sort = sortModel.find((s) => rowGroupCols.some((col) => col.id === s.colId)) || sortModel[0]
+
+						const aVal = getNestedValue(a, sort.colId) ?? getNestedValue(a, groupColumn!.id) ?? ''
+						const bVal = getNestedValue(b, sort.colId) ?? getNestedValue(b, groupColumn!.id) ?? ''
+
+						// Handle numeric comparison
+						if (typeof aVal === 'number' && typeof bVal === 'number') {
+							return sort.sort === 'asc' ? aVal - bVal : bVal - aVal
+						}
+
+						// String comparison
+						const comparison = String(aVal).localeCompare(String(bVal))
+						return sort.sort === 'asc' ? comparison : -comparison
+					}
+
+					// Default: sort by group column value (ascending)
 					const aVal = getNestedValue(a, groupColumn!.id) ?? ''
 					const bVal = getNestedValue(b, groupColumn!.id) ?? ''
+
+					// Handle numeric comparison
+					if (typeof aVal === 'number' && typeof bVal === 'number') {
+						return aVal - bVal
+					}
+
 					return String(aVal).localeCompare(String(bVal))
 				})
 
