@@ -533,8 +533,17 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
  */
 function isDateString(value: unknown): boolean {
 	if (typeof value !== 'string') return false
+
+	// Don't treat pure numbers as dates (e.g., "51.6" shouldn't become a date)
+	if (/^-?\d+\.?\d*$/.test(value.trim())) return false
+
+	// Check if it's a valid date string
 	const date = new Date(value)
-	return !isNaN(date.getTime())
+	if (isNaN(date.getTime())) return false
+
+	// Additional validation: must contain date-like patterns
+	// (year, month name, or ISO format)
+	return /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|GMT|UTC|T\d{2}:/i.test(value)
 }
 
 /**
