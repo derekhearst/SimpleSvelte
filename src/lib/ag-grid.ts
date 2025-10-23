@@ -349,23 +349,25 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 			for (let i = 0; i < groupKeys.length; i++) {
 				const col = rowGroupCols[i]
 				const key = groupKeys[i]
+				// Normalize date strings to ISO-8601 format for Prisma
+				const normalizedKey = normalizeValue(key)
 
 				const computedField = config.computedFields?.find((cf) => cf.columnId === col.id)
 				if (computedField?.groupHandler) {
-					// Use custom group handler
-					computedField.groupHandler(key, where)
+					// Use custom group handler (pass normalized key)
+					computedField.groupHandler(normalizedKey as string, where)
 				} else if (computedField?.dbField) {
 					// Auto-handle nested fields (e.g., 'location.name')
 					if (computedField.dbField.includes('.')) {
-						applyNestedFilter(where, computedField.dbField, key)
+						applyNestedFilter(where, computedField.dbField, normalizedKey)
 					} else {
-						;(where as Record<string, unknown>)[computedField.dbField] = key
+						;(where as Record<string, unknown>)[computedField.dbField] = normalizedKey
 					}
 				} else if (col.id.includes('.')) {
 					// Auto-handle nested fields from column id (e.g., 'location.name')
-					applyNestedFilter(where, col.id, key)
+					applyNestedFilter(where, col.id, normalizedKey)
 				} else {
-					;(where as Record<string, unknown>)[col.id] = key
+					;(where as Record<string, unknown>)[col.id] = normalizedKey
 				}
 			}
 		}
@@ -497,6 +499,50 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 // ============================================================================
 
 /**
+ * Detects if a string is a JavaScript Date string
+ * Examples: "Sat Oct 18 2025 18:00:00 GMT-0600", "2025-10-18T00:00:00.000Z"
+ */
+function isDateString(value: unknown): boolean {
+	if (typeof value !== 'string') return false
+	const date = new Date(value)
+	return !isNaN(date.getTime())
+}
+
+/**
+ * Converts a JavaScript Date string or Date object to ISO-8601 format
+ * This ensures Prisma receives dates in the correct format
+ */
+function toISOString(value: unknown): string | unknown {
+	if (value instanceof Date) {
+		return value.toISOString()
+	}
+	if (typeof value === 'string' && isDateString(value)) {
+		return new Date(value).toISOString()
+	}
+	return value
+}
+
+/**
+ * Normalizes a value for database queries (converts dates to ISO-8601)
+ */
+function normalizeValue(value: unknown): unknown {
+	if (value instanceof Date || (typeof value === 'string' && isDateString(value))) {
+		return toISOString(value)
+	}
+	if (Array.isArray(value)) {
+		return value.map(normalizeValue)
+	}
+	if (value && typeof value === 'object') {
+		const normalized: Record<string, unknown> = {}
+		for (const [key, val] of Object.entries(value)) {
+			normalized[key] = normalizeValue(val)
+		}
+		return normalized
+	}
+	return value
+}
+
+/**
  * Applies a filter to a field (handles nested fields)
  */
 function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filterValue: unknown): void {
@@ -506,27 +552,35 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 
 	// Text filter
 	if ('filter' in filter && typeof filter.filter === 'string') {
+		const normalizedFilter = normalizeValue(filter.filter)
 		if (field.includes('.')) {
-			applyNestedFilter(where, field, { contains: filter.filter, mode: 'insensitive' })
+			applyNestedFilter(where, field, { contains: normalizedFilter, mode: 'insensitive' })
 		} else {
-			;(where as Record<string, unknown>)[field] = { contains: filter.filter, mode: 'insensitive' }
+			;(where as Record<string, unknown>)[field] = { contains: normalizedFilter, mode: 'insensitive' }
 		}
 	}
 
 	// Set filter
 	if ('values' in filter && Array.isArray(filter.values)) {
+		const normalizedValues = normalizeValue(filter.values)
 		if (field.includes('.')) {
-			applyNestedFilter(where, field, { in: filter.values })
+			applyNestedFilter(where, field, { in: normalizedValues })
 		} else {
-			;(where as Record<string, unknown>)[field] = { in: filter.values }
+			;(where as Record<string, unknown>)[field] = { in: normalizedValues }
 		}
 	}
 
 	// Date filter
 	if ('dateFrom' in filter || 'dateTo' in filter) {
-		const dateCondition: Record<string, Date> = {}
-		if (filter.dateFrom) dateCondition.gte = new Date(filter.dateFrom as string)
-		if (filter.dateTo) dateCondition.lte = new Date(filter.dateTo as string)
+		const dateCondition: Record<string, string> = {}
+		if (filter.dateFrom) {
+			const date = new Date(filter.dateFrom as string)
+			dateCondition.gte = date.toISOString()
+		}
+		if (filter.dateTo) {
+			const date = new Date(filter.dateTo as string)
+			dateCondition.lte = date.toISOString()
+		}
 
 		if (field.includes('.')) {
 			applyNestedFilter(where, field, dateCondition)
