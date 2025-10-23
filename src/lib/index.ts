@@ -7,5 +7,15 @@ export { default as Grid } from './Grid.svelte'
 export { Pop } from './pop.js'
 export { clickOutside, FormHelper, RoleHelper as roleHelper } from './utils.js'
 
+// AG Grid Server-Side Row Model API
+export {
+	createAGGridQuery,
+	createAGGridDatasource,
+	agGridRequestSchema,
+	defaultSSRMColDef,
+	defaultSSRMGridOptions,
+	filterConfigs,
+} from './ag-grid.js'
+
 // Export CSS for consumers
 import './styles.css'
