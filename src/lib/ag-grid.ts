@@ -561,12 +561,25 @@ function toISOString(value: unknown): string | unknown {
 }
 
 /**
- * Normalizes a value for database queries (converts dates to ISO-8601)
+ * Normalizes a value for database queries (converts dates to ISO-8601, parses numeric strings)
  */
 function normalizeValue(value: unknown): unknown {
+	// Handle dates (but not numeric strings that look like dates)
 	if (value instanceof Date || (typeof value === 'string' && isDateString(value))) {
 		return toISOString(value)
 	}
+	
+	// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
+	if (typeof value === 'string') {
+		const trimmed = value.trim()
+		if (/^-?\d+\.?\d*$/.test(trimmed)) {
+			const num = Number(trimmed)
+			if (!isNaN(num)) {
+				return num
+			}
+		}
+	}
+	
 	if (Array.isArray(value)) {
 		return value.map(normalizeValue)
 	}
