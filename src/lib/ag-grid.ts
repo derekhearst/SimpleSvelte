@@ -648,8 +648,91 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 
 	const filter = filterValue as Record<string, unknown>
 
-	// Text filter
-	if ('filter' in filter && typeof filter.filter === 'string') {
+	// Number/Date filter with type (e.g., equals, lessThan, greaterThan, inRange)
+	if ('filterType' in filter || 'type' in filter) {
+		const filterType = (filter.filterType || filter.type) as string
+		
+		// Handle simple comparison operators
+		if ('filter' in filter && filter.filter !== null && filter.filter !== undefined) {
+			const normalizedValue = normalizeValue(filter.filter, field)
+			const condition: Record<string, unknown> = {}
+			
+			switch (filterType) {
+				case 'equals':
+					if (field.includes('.')) {
+						applyNestedFilter(where, field, normalizedValue)
+					} else {
+						;(where as Record<string, unknown>)[field] = normalizedValue
+					}
+					return
+				case 'notEqual':
+					condition.not = normalizedValue
+					break
+				case 'lessThan':
+					condition.lt = normalizedValue
+					break
+				case 'lessThanOrEqual':
+					condition.lte = normalizedValue
+					break
+				case 'greaterThan':
+					condition.gt = normalizedValue
+					break
+				case 'greaterThanOrEqual':
+					condition.gte = normalizedValue
+					break
+				case 'contains':
+					condition.contains = normalizedValue
+					condition.mode = 'insensitive'
+					break
+				case 'notContains':
+					condition.not = { contains: normalizedValue, mode: 'insensitive' }
+					break
+				case 'startsWith':
+					condition.startsWith = normalizedValue
+					condition.mode = 'insensitive'
+					break
+				case 'endsWith':
+					condition.endsWith = normalizedValue
+					condition.mode = 'insensitive'
+					break
+			}
+			
+			if (Object.keys(condition).length > 0) {
+				if (field.includes('.')) {
+					applyNestedFilter(where, field, condition)
+				} else {
+					;(where as Record<string, unknown>)[field] = condition
+				}
+			}
+			return
+		}
+		
+		// Handle inRange (for number and date filters)
+		if (filterType === 'inRange' && 'filter' in filter && 'filterTo' in filter) {
+			const normalizedFrom = normalizeValue(filter.filter, field)
+			const normalizedTo = normalizeValue(filter.filterTo, field)
+			const rangeCondition: Record<string, unknown> = {}
+			
+			if (normalizedFrom !== null && normalizedFrom !== undefined) {
+				rangeCondition.gte = normalizedFrom
+			}
+			if (normalizedTo !== null && normalizedTo !== undefined) {
+				rangeCondition.lte = normalizedTo
+			}
+			
+			if (Object.keys(rangeCondition).length > 0) {
+				if (field.includes('.')) {
+					applyNestedFilter(where, field, rangeCondition)
+				} else {
+					;(where as Record<string, unknown>)[field] = rangeCondition
+				}
+			}
+			return
+		}
+	}
+
+	// Text filter (legacy/fallback for simple string filters)
+	if ('filter' in filter && typeof filter.filter === 'string' && !('filterType' in filter) && !('type' in filter)) {
 		const normalizedFilter = normalizeValue(filter.filter)
 		if (field.includes('.')) {
 			applyNestedFilter(where, field, { contains: normalizedFilter, mode: 'insensitive' })
@@ -698,7 +781,7 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 		}
 	}
 
-	// Date filter
+	// Date filter (legacy dateFrom/dateTo format)
 	if ('dateFrom' in filter || 'dateTo' in filter) {
 		const dateCondition: Record<string, string> = {}
 		if (filter.dateFrom) {
