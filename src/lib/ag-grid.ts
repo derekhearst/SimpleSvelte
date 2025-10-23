@@ -650,14 +650,16 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 
 	// Number/Date filter with type (e.g., equals, lessThan, greaterThan, inRange)
 	if ('filterType' in filter || 'type' in filter) {
-		const filterType = (filter.filterType || filter.type) as string
+		// AG Grid sends both filterType ("number"/"date") and type ("equals"/"lessThan"/etc)
+		// We need the comparison type, not the filter type
+		const comparisonType = (filter.type || filter.filterType) as string
 
 		// Handle simple comparison operators
 		if ('filter' in filter && filter.filter !== null && filter.filter !== undefined) {
 			const normalizedValue = normalizeValue(filter.filter, field)
 			const condition: Record<string, unknown> = {}
 
-			switch (filterType) {
+			switch (comparisonType) {
 				case 'equals':
 					if (field.includes('.')) {
 						applyNestedFilter(where, field, normalizedValue)
@@ -708,7 +710,7 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 		}
 
 		// Handle inRange (for number and date filters)
-		if (filterType === 'inRange' && 'filter' in filter && 'filterTo' in filter) {
+		if (comparisonType === 'inRange' && 'filter' in filter && 'filterTo' in filter) {
 			const normalizedFrom = normalizeValue(filter.filter, field)
 			const normalizedTo = normalizeValue(filter.filterTo, field)
 			const rangeCondition: Record<string, unknown> = {}
