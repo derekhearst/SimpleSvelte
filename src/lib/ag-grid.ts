@@ -430,36 +430,60 @@ export function createAGGridQuery<TRecord = unknown, TWhereInput = Record<string
 			const groupMap = new Map<string, number>()
 
 			for (const record of allRecords) {
-				let groupValue = ''
+				let groupValue: unknown = undefined
 
 				const computedField = config.computedFields?.find((cf) => cf.columnId === groupColumn!.id)
 				if (computedField?.valueGetter) {
 					// Use custom value getter
-					groupValue = String(computedField.valueGetter(record) ?? '')
+					groupValue = computedField.valueGetter(record)
 				} else if (computedField?.dbField) {
 					// Auto-extract nested value (e.g., 'location.name')
-					groupValue = String(getNestedValue(record, computedField.dbField) ?? '')
+					groupValue = getNestedValue(record, computedField.dbField)
 				} else {
 					// Support nested field paths like 'location.name' by traversing the object
 					if (groupColumn!.id.includes('.')) {
-						groupValue = String(getNestedValue(record, groupColumn!.id) ?? '')
+						groupValue = getNestedValue(record, groupColumn!.id)
 					} else {
-						groupValue = String((record as Record<string, unknown>)[groupColumn!.id] ?? '')
+						groupValue = (record as Record<string, unknown>)[groupColumn!.id]
 					}
 				}
 
-				if (groupValue) {
-					groupMap.set(groupValue, (groupMap.get(groupValue) || 0) + 1)
+				// Only include non-null, non-undefined values (convert to string for grouping)
+				if (groupValue !== null && groupValue !== undefined) {
+					const groupKey = String(groupValue)
+					if (groupKey.trim()) {
+						// Skip empty strings
+						groupMap.set(groupKey, (groupMap.get(groupKey) || 0) + 1)
+					}
 				}
 			}
 
 			// Convert to group rows
 			const groups = Array.from(groupMap.entries())
-				.map(([key, count]) => ({
-					[groupColumn!.id]: key,
-					childCount: count,
-				}))
-				.sort((a, b) => String(a[groupColumn!.id]).localeCompare(String(b[groupColumn!.id])))
+				.map(([key, count]) => {
+					const groupRow: Record<string, unknown> = { childCount: count }
+
+					// For nested fields like 'location.name', create the nested structure
+					if (groupColumn!.id.includes('.')) {
+						const parts = groupColumn!.id.split('.')
+						let current = groupRow
+						for (let i = 0; i < parts.length - 1; i++) {
+							current[parts[i]] = {}
+							current = current[parts[i]] as Record<string, unknown>
+						}
+						current[parts[parts.length - 1]] = key
+					} else {
+						// For flat fields, just set directly
+						groupRow[groupColumn!.id] = key
+					}
+
+					return groupRow
+				})
+				.sort((a, b) => {
+					const aVal = getNestedValue(a, groupColumn!.id) ?? ''
+					const bVal = getNestedValue(b, groupColumn!.id) ?? ''
+					return String(aVal).localeCompare(String(bVal))
+				})
 
 			const paginatedGroups = groups.slice(startRow, endRow)
 
