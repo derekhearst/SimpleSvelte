@@ -706,17 +706,17 @@ function createNestedSort(path: string, direction: 'asc' | 'desc'): Record<strin
 
 	const parts = path.split('.')
 	const result: Record<string, unknown> = {}
-	
+
 	// Build nested structure from outermost to innermost
 	let current = result
 	for (let i = 0; i < parts.length - 1; i++) {
 		current[parts[i]] = {}
 		current = current[parts[i]] as Record<string, unknown>
 	}
-	
+
 	// Set the final field to the sort direction
 	current[parts[parts.length - 1]] = direction
-	
+
 	return result
 }
 
