@@ -654,6 +654,28 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 		// We need the comparison type, not the filter type
 		const comparisonType = (filter.type || filter.filterType) as string
 
+		// Handle blank/notBlank/empty filters (no filter value needed)
+		if (comparisonType === 'blank' || comparisonType === 'empty') {
+			// Filter for null or undefined values
+			if (field.includes('.')) {
+				applyNestedFilter(where, field, null)
+			} else {
+				;(where as Record<string, unknown>)[field] = null
+			}
+			return
+		}
+
+		if (comparisonType === 'notBlank') {
+			// Filter for non-null values
+			const condition = { not: null }
+			if (field.includes('.')) {
+				applyNestedFilter(where, field, condition)
+			} else {
+				;(where as Record<string, unknown>)[field] = condition
+			}
+			return
+		}
+
 		// Handle simple comparison operators
 		if ('filter' in filter && filter.filter !== null && filter.filter !== undefined) {
 			const normalizedValue = normalizeValue(filter.filter, field)
