@@ -910,22 +910,20 @@ export function getCurrentGroupColumn(request: AGGridRequest): AGGridColumn | un
 /**
  * Default column definition for SSRM grids
  */
-export const defaultSSRMColDef = {
+export const defaultSSRMColDef: import('ag-grid-community').ColDef = {
 	sortable: true,
 	resizable: true,
 	filter: true,
 	floatingFilter: true,
 	enableRowGroup: true,
 	flex: 1,
-	// Cast to AG Grid's ColumnMenuTab[] to satisfy TypeScript (mutable array of menu tab names)
-	// We keep the runtime value as string literals which AG Grid accepts.
-	menuTabs: ['filterMenuTab', 'generalMenuTab'] as unknown as import('ag-grid-community').ColumnMenuTab[],
+	menuTabs: ['filterMenuTab', 'generalMenuTab'],
 }
 
 /**
  * Default grid options for SSRM
  */
-export const defaultSSRMGridOptions = {
+export const defaultSSRMGridOptions: Partial<import('ag-grid-community').GridOptions> = {
 	rowModelType: 'serverSide',
 	pagination: true,
 	paginationPageSize: 100,
