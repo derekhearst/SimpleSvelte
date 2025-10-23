@@ -662,14 +662,22 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 	if ('values' in filter && Array.isArray(filter.values)) {
 		const normalizedValues = normalizeValue(filter.values) as unknown[]
 
-		// Check if this is a boolean filter (values are "Yes"/"No" or true/false)
-		const isBooleanFilter = normalizedValues.every((v) => v === 'Yes' || v === 'No' || v === true || v === false)
+		// Check if this is a boolean filter (values are "Yes"/"No", "true"/"false", or boolean primitives)
+		const isBooleanFilter = normalizedValues.every(
+			(v) => 
+				v === 'Yes' || 
+				v === 'No' || 
+				v === 'true' || 
+				v === 'false' || 
+				v === true || 
+				v === false
+		)
 
 		if (isBooleanFilter) {
-			// Convert "Yes"/"No" to boolean for Prisma
+			// Convert "Yes"/"No"/"true"/"false" to boolean for Prisma
 			const booleanValues = normalizedValues.map((v) => {
-				if (v === 'Yes' || v === true) return true
-				if (v === 'No' || v === false) return false
+				if (v === 'Yes' || v === 'true' || v === true) return true
+				if (v === 'No' || v === 'false' || v === false) return false
 				return v
 			})
 
