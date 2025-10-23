@@ -918,7 +918,7 @@ export const defaultSSRMColDef = {
 	enableRowGroup: true,
 	flex: 1,
 	menuTabs: ['filterMenuTab', 'generalMenuTab'],
-} as const
+}
 
 /**
  * Default grid options for SSRM
@@ -931,7 +931,7 @@ export const defaultSSRMGridOptions = {
 	rowGroupPanelShow: 'always',
 	groupDisplayType: 'groupRows',
 	animateRows: true,
-} as const
+}
 
 /**
  * Predefined filter configurations for common column types
