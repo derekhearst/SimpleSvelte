@@ -119,8 +119,14 @@ export function clickOutside(element: HTMLElement, callbackFunction: () => void)
 export function formatDate(date: Date | string | undefined | null): string {
 	if (!date) return ''
 	const d = new Date(date)
-	const month = d.getMonth() + 1
-	const day = d.getDate()
-	const year = d.getFullYear()
-	return `${month}/${day}/${year}`
+
+	// If UTC time component is 0, use UTC date
+	if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
+		const month = d.getUTCMonth() + 1
+		const day = d.getUTCDate()
+		const year = d.getUTCFullYear()
+		return `${month}/${day}/${year}`
+	} else {
+		return d.toLocaleDateString()
+	}
 }
