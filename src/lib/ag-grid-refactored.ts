@@ -279,6 +279,22 @@ export type AGGridQueryConfig<TRecord = any> = {
 	 * ```
 	 */
 	skipNormalization?: (string | RegExp)[]
+	/**
+	 * Optional: Disable case-insensitive filtering.
+	 * Set to true if your database doesn't support mode: 'insensitive' (e.g., MySQL, some SQLite configs).
+	 * When true, text filters will use exact case matching instead of case-insensitive matching.
+	 *
+	 * @default false
+	 *
+	 * @example
+	 * ```typescript
+	 * {
+	 *   disableCaseInsensitive: true, // Use exact case matching
+	 *   // ... other config
+	 * }
+	 * ```
+	 */
+	disableCaseInsensitive?: boolean
 }
 
 // ============================================================================
@@ -472,7 +488,12 @@ function transformForPrisma<T extends Record<string, any> | Record<string, any>[
 /**
  * Handles text filters (contains, equals, startsWith, endsWith, etc.)
  */
-function applyTextFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
+function applyTextFilter(
+	where: Record<string, any>,
+	field: string,
+	filter: Record<string, unknown>,
+	disableCaseInsensitive?: boolean,
+): void {
 	const type = filter.type as string
 	const value = filter.filter
 
@@ -484,16 +505,18 @@ function applyTextFilter(where: Record<string, any>, field: string, filter: Reco
 			where[field] = { not: value }
 			break
 		case 'contains':
-			where[field] = { contains: value, mode: 'insensitive' }
+			where[field] = disableCaseInsensitive ? { contains: value } : { contains: value, mode: 'insensitive' }
 			break
 		case 'notContains':
-			where[field] = { not: { contains: value, mode: 'insensitive' } }
+			where[field] = disableCaseInsensitive
+				? { not: { contains: value } }
+				: { not: { contains: value, mode: 'insensitive' } }
 			break
 		case 'startsWith':
-			where[field] = { startsWith: value, mode: 'insensitive' }
+			where[field] = disableCaseInsensitive ? { startsWith: value } : { startsWith: value, mode: 'insensitive' }
 			break
 		case 'endsWith':
-			where[field] = { endsWith: value, mode: 'insensitive' }
+			where[field] = disableCaseInsensitive ? { endsWith: value } : { endsWith: value, mode: 'insensitive' }
 			break
 		case 'blank':
 		case 'empty':
@@ -596,7 +619,7 @@ function applyDateFilter(where: Record<string, any>, field: string, filter: Reco
  */
 function applySetFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
 	const values = filter.values as unknown[]
-	
+
 	// Empty values array means no filter selected - skip this filter entirely
 	if (!values || values.length === 0) return
 
@@ -624,7 +647,12 @@ function applySetFilter(where: Record<string, any>, field: string, filter: Recor
  * Applies a filter to a field (main entry point)
  * Determines filterType first, then dispatches to appropriate handler
  */
-function applyFilterToField(where: Record<string, any>, field: string, filterValue: unknown): void {
+function applyFilterToField(
+	where: Record<string, any>,
+	field: string,
+	filterValue: unknown,
+	disableCaseInsensitive?: boolean,
+): void {
 	if (!filterValue || typeof filterValue !== 'object') return
 
 	const filter = filterValue as Record<string, unknown>
@@ -634,7 +662,7 @@ function applyFilterToField(where: Record<string, any>, field: string, filterVal
 
 	switch (filterType) {
 		case 'text':
-			applyTextFilter(where, field, filter)
+			applyTextFilter(where, field, filter, disableCaseInsensitive)
 			break
 		case 'number':
 			applyNumberFilter(where, field, filter)
@@ -772,7 +800,7 @@ function buildWhereClause(
 				const transformed = computedField.transform(extractedValue)
 				mergeWhereConditions(where, transformed)
 			} else {
-				applyFilterToField(where, columnId, filterValue)
+				applyFilterToField(where, columnId, filterValue, config.disableCaseInsensitive)
 			}
 		}
 	}
