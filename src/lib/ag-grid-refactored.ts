@@ -142,10 +142,24 @@ type PrismaFilter<T> = T extends string
 
 /**
  * Transform return type that constrains field names to TRecord keys
- * and provides proper typing for Prisma filter operators based on field types
+ * and provides proper typing for Prisma filter operators based on field types.
+ * Supports OR and AND operators for complex queries.
  */
 type TransformResult<TRecord> = {
 	[K in keyof TRecord]?: PrismaFilter<TRecord[K]>
+} & {
+	/** OR operator - at least one condition must match */
+	OR?: Array<{
+		[K in keyof TRecord]?: PrismaFilter<TRecord[K]>
+	}>
+	/** AND operator - all conditions must match */
+	AND?: Array<{
+		[K in keyof TRecord]?: PrismaFilter<TRecord[K]>
+	}>
+	/** NOT operator - inverts the condition */
+	NOT?: {
+		[K in keyof TRecord]?: PrismaFilter<TRecord[K]>
+	}
 }
 
 /**
@@ -198,7 +212,7 @@ type AGGridQueryParams = {
  * }
  * ```
  *
- * @example Full Name (Multi-field)
+ * @example Full Name (Multi-field with OR)
  * ```typescript
  * {
  *   columnId: 'fullName',
@@ -206,8 +220,10 @@ type AGGridQueryParams = {
  *   transform: (name) => {
  *     const [first, last] = name.split(' ')
  *     return {
- *       firstName: { contains: first, mode: 'insensitive' },
- *       lastName: { contains: last, mode: 'insensitive' }
+ *       OR: [
+ *         { firstName: { contains: first, mode: 'insensitive' } },
+ *         { lastName: { contains: last || first, mode: 'insensitive' } }
+ *       ]
  *     }
  *   }
  * }
