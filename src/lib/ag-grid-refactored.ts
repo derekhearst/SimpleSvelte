@@ -269,7 +269,7 @@ function toISOString(value: unknown): string | unknown {
 }
 
 /**
- * Normalizes a value for database queries (converts dates to ISO-8601, parses numeric strings)
+ * Normalizes a value for database queries (converts dates to ISO-8601, parses numeric strings, converts boolean strings)
  */
 function normalizeValue(value: unknown, fieldName?: string, skipPatterns?: (string | RegExp)[]): unknown {
 	// Handle dates (but not numeric strings that look like dates)
@@ -277,9 +277,13 @@ function normalizeValue(value: unknown, fieldName?: string, skipPatterns?: (stri
 		return toISOString(value)
 	}
 
-	// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
+	// Parse boolean strings to boolean (e.g., "true" -> true, "false" -> false)
 	if (typeof value === 'string') {
 		const trimmed = value.trim()
+		if (trimmed === 'true') return true
+		if (trimmed === 'false') return false
+		
+		// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
 		if (/^-?\d+\.?\d*$/.test(trimmed)) {
 			// Skip conversion if field matches any skip pattern
 			if (fieldName && skipPatterns) {
