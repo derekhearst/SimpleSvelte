@@ -1,33 +1,3 @@
-/**
- * AG Grid Server-Side Row Model (SSRM) - Server-Side Implementation API (Refactored)
- *
- * This module provides a clean, strongly-typed interface for implementing
- * AG Grid's Server-Side Row Model on the backend with any data source.
- *
- * @example Server-Side Usage (SvelteKit Remote Function)
- * ```typescript
- * import { createAGGridQuery, agGridRequestSchema } from '$lib/ag-grid-refactored'
- * import { query } from '$app/server'
- *
- * export const getUsersPaginated = query(agGridRequestSchema, async (request) => {
- *   return await createAGGridQuery({
- *     async fetch(params) {
- *       const users = await DB.user.findMany({
- *         where: params.where,
- *         orderBy: params.orderBy,
- *         skip: params.skip,
- *         take: params.take,
- *       })
- *       return users
- *     },
- *     async count(params) {
- *       return await DB.user.count({ where: params.where })
- *     }
- *   })(request)
- * })
- * ```
- */
-
 import type { IServerSideDatasource, IServerSideGetRowsParams } from 'ag-grid-enterprise'
 import { z } from 'zod'
 
@@ -35,40 +5,29 @@ import { z } from 'zod'
 // Core Types - Matching AG Grid's Official API
 // ============================================================================
 
-/**
- * Column configuration from AG Grid
- */
-export interface AGGridColumn {
+// Internal types - not exported
+type AGGridColumn = {
 	id: string
 	displayName: string
 	field?: string
 	aggFunc?: string
 }
 
-/**
- * Sort configuration
- */
-export interface AGGridSort {
+type AGGridSort = {
 	colId: string
 	sort: 'asc' | 'desc'
 }
 
 /**
- * Filter model from AG Grid
- * This is a simplified type - actual filters can be more complex
- */
-export type AGGridFilterModel = Record<string, unknown>
-
-/**
  * Request parameters sent from AG Grid to the data fetcher
  */
-export interface AGGridRequest {
+export type AGGridRequest = {
 	/** Starting row index (0-based) */
 	startRow?: number
 	/** Ending row index (exclusive) */
 	endRow?: number
 	/** Current filter configuration */
-	filterModel?: AGGridFilterModel
+	filterModel?: Record<string, unknown>
 	/** Current sort configuration */
 	sortModel: AGGridSort[]
 	/** Columns being used for row grouping */
@@ -86,7 +45,7 @@ export interface AGGridRequest {
 /**
  * Response from the data fetcher back to AG Grid
  */
-export interface AGGridResponse<TData = unknown> {
+export type AGGridResponse<TData = any> = {
 	/** The row data for this request */
 	rows: TData[]
 	/**
@@ -102,44 +61,19 @@ export interface AGGridResponse<TData = unknown> {
 	pivotResultFields?: string[]
 }
 
-/**
- * Data fetcher function type
- * Implement this to connect AG Grid to your backend
- */
-export type AGGridDataFetcher<TData = unknown> = (request: AGGridRequest) => Promise<AGGridResponse<TData>>
-
-/**
- * Options for datasource creation
- */
-export interface AGGridDatasourceOptions {
-	/** Called when a request fails */
-	onError?: (error: unknown) => void
-	/** Called before each request is made */
-	onBeforeRequest?: (request: AGGridRequest) => void
-	/** Called after each successful response */
-	onAfterResponse?: (response: AGGridResponse) => void
-	/** Enable debug logging */
-	debug?: boolean
-}
-
 // ============================================================================
 // Zod Schema for Remote Functions
 // ============================================================================
 
-/**
- * Zod schema for AG Grid column configuration
- */
-export const agGridColumnSchema = z.object({
+// Internal schemas
+const agGridColumnSchema = z.object({
 	id: z.string(),
 	displayName: z.string(),
 	field: z.string().optional(),
 	aggFunc: z.string().optional(),
 })
 
-/**
- * Zod schema for AG Grid sort configuration
- */
-export const agGridSortSchema = z.object({
+const agGridSortSchema = z.object({
 	colId: z.string(),
 	sort: z.enum(['asc', 'desc']),
 })
@@ -168,7 +102,7 @@ export const agGridRequestSchema = z.object({
  * Parsed query parameters from AG Grid request
  * This is what you'll use to query your database
  */
-export interface AGGridQueryParams {
+type AGGridQueryParams = {
 	/** WHERE clause for filtering */
 	where: Record<string, any>
 	/** ORDER BY clause for sorting (use Record<string, unknown>[] for Prisma compatibility) */
@@ -229,49 +163,7 @@ export interface AGGridQueryParams {
  * }
  * ```
  */
-/**
- * Configuration for a computed/virtual field
- *
- * Use this ONLY for truly computed/calculated values, not for simple nested relations.
- *
- * For nested relations (e.g., showing 'location.name'), use dot notation directly in
- * your column definitions instead:
- *   { field: 'location.name', headerName: 'Location' }
- *
- * computedFields are for complex calculations like:
- * - Week ending dates calculated from another date field
- * - Full names concatenated from firstName + lastName
- * - Custom aggregations or transformations
- *
- * @example Week Ending Date
- * ```typescript
- * {
- *   columnId: 'weekEnding',
- *   valueGetter: (record) => getWeekEndingDate(record.dateOfEngagement),
- *   transform: (date) => {
- *     const weekStart = new Date(date)
- *     weekStart.setUTCDate(date.getUTCDate() - 6)
- *     return { dateOfEngagement: { gte: weekStart, lte: date } }
- *   }
- * }
- * ```
- *
- * @example Full Name (Multi-field)
- * ```typescript
- * {
- *   columnId: 'fullName',
- *   valueGetter: (record) => `${record.firstName} ${record.lastName}`,
- *   transform: (name) => {
- *     const [first, last] = name.split(' ')
- *     return {
- *       firstName: { contains: first, mode: 'insensitive' },
- *       lastName: { contains: last, mode: 'insensitive' }
- *     }
- *   }
- * }
- * ```
- */
-export interface ComputedField<TRecord = any> {
+export type ComputedField<TRecord = any> = {
 	/** Column ID in AG Grid */
 	columnId: string
 	/**
@@ -309,13 +201,13 @@ export interface ComputedField<TRecord = any> {
 	 * })
 	 * ```
 	 */
-	transform: (value: ReturnType<this['valueGetter']>) => Record<string, any>
+	transform: (value: any) => Record<string, any>
 }
 
 /**
  * Configuration for AG Grid query builder
  */
-export interface AGGridQueryConfig<TRecord = any> {
+export type AGGridQueryConfig<TRecord = any> = {
 	/** Function to fetch data rows */
 	fetch: (params: AGGridQueryParams) => Promise<TRecord[]>
 	/** Function to count total rows */
@@ -326,6 +218,17 @@ export interface AGGridQueryConfig<TRecord = any> {
 	defaultSort?: Record<string, 'asc' | 'desc'>
 	/** Optional: Transform where clause before query */
 	transformWhere?: (where: Record<string, any>, request: AGGridRequest) => Record<string, any>
+	/**
+	 * Optional: Field names (or patterns) that should skip numeric normalization.
+	 * Useful for fields that look numeric but should remain strings (e.g., ID fields, codes).
+	 * Supports exact field names or RegExp patterns.
+	 *
+	 * @example
+	 * ```typescript
+	 * skipNormalization: ['jdeNumber', /jde/i, 'accountCode']
+	 * ```
+	 */
+	skipNormalization?: (string | RegExp)[]
 }
 
 // ============================================================================
@@ -368,20 +271,27 @@ function toISOString(value: unknown): string | unknown {
 /**
  * Normalizes a value for database queries (converts dates to ISO-8601, parses numeric strings)
  */
-function normalizeValue(value: unknown, fieldName?: string): unknown {
+function normalizeValue(value: unknown, fieldName?: string, skipPatterns?: (string | RegExp)[]): unknown {
 	// Handle dates (but not numeric strings that look like dates)
 	if (value instanceof Date || (typeof value === 'string' && isDateString(value))) {
 		return toISOString(value)
 	}
 
 	// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
-	// BUT: Skip conversion for fields containing "jde" (these are always strings)
 	if (typeof value === 'string') {
 		const trimmed = value.trim()
 		if (/^-?\d+\.?\d*$/.test(trimmed)) {
-			// Don't convert if field name contains "jde" (case insensitive)
-			if (fieldName && /jde/i.test(fieldName)) {
-				return value
+			// Skip conversion if field matches any skip pattern
+			if (fieldName && skipPatterns) {
+				const shouldSkip = skipPatterns.some((pattern) => {
+					if (typeof pattern === 'string') {
+						return fieldName === pattern
+					}
+					return pattern.test(fieldName)
+				})
+				if (shouldSkip) {
+					return value
+				}
 			}
 			const num = Number(trimmed)
 			if (!isNaN(num)) {
@@ -391,16 +301,44 @@ function normalizeValue(value: unknown, fieldName?: string): unknown {
 	}
 
 	if (Array.isArray(value)) {
-		return value.map((v) => normalizeValue(v, fieldName))
+		return value.map((v) => normalizeValue(v, fieldName, skipPatterns))
 	}
 	if (value && typeof value === 'object') {
 		const normalized: Record<string, unknown> = {}
 		for (const [key, val] of Object.entries(value)) {
-			normalized[key] = normalizeValue(val, key)
+			normalized[key] = normalizeValue(val, key, skipPatterns)
 		}
 		return normalized
 	}
 	return value
+}
+
+/**
+ * Normalizes all values in an AG Grid request upfront
+ * This includes filterModel, sortModel values, and groupKeys
+ */
+function normalizeRequest(request: AGGridRequest, skipPatterns?: (string | RegExp)[]): AGGridRequest {
+	// We don't need to normalize the filter model, only grouping since all groupKeys are strings
+	// Normalize filter model - map each column's filter with field context
+	// let normalizedFilterModel: Record<string, unknown> | undefined
+	// if (request.filterModel) {
+	// 	normalizedFilterModel = {}
+	// 	for (const [columnId, filterValue] of Object.entries(request.filterModel)) {
+	// 		normalizedFilterModel[columnId] = normalizeValue(filterValue, columnId, skipPatterns)
+	// 	}
+	// }
+
+	return {
+		...request,
+		// Normalize filter model
+		filterModel: request.filterModel,
+		// Normalize group keys
+		groupKeys: request.groupKeys.map((key, index) => {
+			const col = request.rowGroupCols[index]
+			const fieldName = col?.field || col?.id
+			return normalizeValue(key, fieldName, skipPatterns) as string
+		}),
+	}
 }
 
 // ============================================================================
@@ -424,304 +362,235 @@ function getNestedValue<T>(obj: T, path: string): unknown {
 }
 
 /**
- * Applies a nested filter (e.g., 'location.name')
+ * Transforms flat objects with dotted keys into nested Prisma format
+ * Works for both single objects (WHERE clauses) and arrays of objects (ORDER BY clauses)
+ *
+ * @example Single object (WHERE)
+ * Input:  { 'location.name': 'Seattle', 'status': 'active' }
+ * Output: { location: { name: 'Seattle' }, status: 'active' }
+ *
+ * @example Array of objects (ORDER BY)
+ * Input:  [{ 'location.name': 'asc' }, { 'status': 'desc' }]
+ * Output: [{ location: { name: 'asc' } }, { status: 'desc' }]
  */
-function applyNestedFilter<TWhereInput>(where: TWhereInput, path: string, value: unknown): void {
-	const [relation, field] = path.split('.')
-	const whereObj = where as Record<string, unknown>
+function transformForPrisma<T extends Record<string, any> | Record<string, any>[]>(input: T): T {
+	const transformObject = (obj: Record<string, any>): Record<string, any> => {
+		const result: Record<string, any> = {}
 
-	if (!whereObj[relation]) {
-		whereObj[relation] = {}
-	}
+		for (const [key, value] of Object.entries(obj)) {
+			if (key.includes('.')) {
+				// Handle nested field path
+				const parts = key.split('.')
 
-	;(whereObj[relation] as Record<string, unknown>)[field] = value
-}
+				// Build nested structure
+				let current: any = result
+				for (let i = 0; i < parts.length - 1; i++) {
+					if (!current[parts[i]]) {
+						current[parts[i]] = {}
+					}
+					current = current[parts[i]]
+				}
 
-/**
- * Creates a nested sort object (e.g., 'location.name' -> { location: { name: 'asc' } })
- * Handles deeply nested paths like 'user.profile.name' -> { user: { profile: { name: 'asc' } } }
- */
-function createNestedSort(path: string, direction: 'asc' | 'desc'): Record<string, unknown> {
-	if (!path.includes('.')) {
-		return { [path]: direction }
-	}
-
-	const parts = path.split('.')
-	const result: Record<string, unknown> = {}
-
-	// Build nested structure from outermost to innermost
-	let current = result
-	for (let i = 0; i < parts.length - 1; i++) {
-		current[parts[i]] = {}
-		current = current[parts[i]] as Record<string, unknown>
-	}
-
-	// Set the final field to the sort direction
-	current[parts[parts.length - 1]] = direction
-
-	return result
-}
-
-// ============================================================================
-// Filter Strategy Registry
-// ============================================================================
-
-type FilterStrategy<TWhereInput extends Record<string, any>> = (
-	where: TWhereInput,
-	field: string,
-	value: unknown,
-	fieldName?: string,
-) => void
-
-/**
- * Applies an equals filter to a field
- */
-function applyEqualsFilter<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	value: unknown,
-	fieldName?: string,
-): void {
-	const normalizedValue = normalizeValue(value, fieldName)
-	if (field.includes('.')) {
-		applyNestedFilter(where, field, normalizedValue)
-	} else {
-		;(where as any)[field] = normalizedValue
-	}
-}
-
-/**
- * Applies a comparison filter (gt, gte, lt, lte, not)
- */
-function applyComparisonFilter<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	value: unknown,
-	operator: 'gt' | 'gte' | 'lt' | 'lte' | 'not',
-	fieldName?: string,
-): void {
-	const normalizedValue = normalizeValue(value, fieldName)
-	const condition = { [operator]: normalizedValue }
-
-	if (field.includes('.')) {
-		applyNestedFilter(where, field, condition)
-	} else {
-		;(where as any)[field] = condition
-	}
-}
-
-/**
- * Applies a text filter (contains, startsWith, endsWith)
- */
-function applyTextFilter<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	value: unknown,
-	operator: 'contains' | 'startsWith' | 'endsWith',
-	fieldName?: string,
-): void {
-	const normalizedValue = normalizeValue(value, fieldName)
-	const condition = { [operator]: normalizedValue, mode: 'insensitive' }
-
-	if (field.includes('.')) {
-		applyNestedFilter(where, field, condition)
-	} else {
-		;(where as any)[field] = condition
-	}
-}
-
-/**
- * Applies a negated text filter (notContains)
- */
-function applyNotContainsFilter<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	value: unknown,
-	fieldName?: string,
-): void {
-	const normalizedValue = normalizeValue(value, fieldName)
-	const condition = { not: { contains: normalizedValue, mode: 'insensitive' } }
-
-	if (field.includes('.')) {
-		applyNestedFilter(where, field, condition)
-	} else {
-		;(where as any)[field] = condition
-	}
-}
-
-/**
- * Applies a range filter (inRange)
- */
-function applyRangeFilter<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	fromValue: unknown,
-	toValue: unknown,
-	fieldName?: string,
-): void {
-	const normalizedFrom = normalizeValue(fromValue, fieldName)
-	const normalizedTo = normalizeValue(toValue, fieldName)
-	const rangeCondition: Record<string, unknown> = {}
-
-	if (normalizedFrom !== null && normalizedFrom !== undefined) {
-		rangeCondition.gte = normalizedFrom
-	}
-	if (normalizedTo !== null && normalizedTo !== undefined) {
-		rangeCondition.lte = normalizedTo
-	}
-
-	if (Object.keys(rangeCondition).length > 0) {
-		if (field.includes('.')) {
-			applyNestedFilter(where, field, rangeCondition)
-		} else {
-			;(where as any)[field] = rangeCondition
+				// Set the final field value
+				current[parts[parts.length - 1]] = value
+			} else {
+				// Direct field
+				result[key] = value
+			}
 		}
+
+		return result
+	}
+
+	// Handle array input (ORDER BY)
+	if (Array.isArray(input)) {
+		return input.map(transformObject) as T
+	}
+
+	// Handle single object input (WHERE)
+	return transformObject(input) as T
+}
+
+// ============================================================================
+// Filter Type Handlers (matching AG Grid pattern)
+// ============================================================================
+
+/**
+ * Handles text filters (contains, equals, startsWith, endsWith, etc.)
+ */
+function applyTextFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
+	const type = filter.type as string
+	const value = filter.filter
+
+	switch (type) {
+		case 'equals':
+			where[field] = value
+			break
+		case 'notEqual':
+			where[field] = { not: value }
+			break
+		case 'contains':
+			where[field] = { contains: value, mode: 'insensitive' }
+			break
+		case 'notContains':
+			where[field] = { not: { contains: value, mode: 'insensitive' } }
+			break
+		case 'startsWith':
+			where[field] = { startsWith: value, mode: 'insensitive' }
+			break
+		case 'endsWith':
+			where[field] = { endsWith: value, mode: 'insensitive' }
+			break
+		case 'blank':
+		case 'empty':
+			where[field] = null
+			break
+		case 'notBlank':
+			where[field] = { not: null }
+			break
+		default:
+			console.warn('Unknown text filter type:', type)
 	}
 }
 
 /**
- * Applies a null/blank filter
+ * Handles number filters (equals, greaterThan, lessThan, inRange, etc.)
  */
-function applyBlankFilter<TWhereInput extends Record<string, any>>(where: TWhereInput, field: string): void {
-	if (field.includes('.')) {
-		applyNestedFilter(where, field, null)
-	} else {
-		;(where as any)[field] = null
+function applyNumberFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
+	const type = filter.type as string
+	const value = filter.filter
+	const valueTo = filter.filterTo
+
+	switch (type) {
+		case 'equals':
+			where[field] = value
+			break
+		case 'notEqual':
+			where[field] = { not: value }
+			break
+		case 'greaterThan':
+			where[field] = { gt: value }
+			break
+		case 'greaterThanOrEqual':
+			where[field] = { gte: value }
+			break
+		case 'lessThan':
+			where[field] = { lt: value }
+			break
+		case 'lessThanOrEqual':
+			where[field] = { lte: value }
+			break
+		case 'inRange':
+			where[field] = { gte: value, lte: valueTo }
+			break
+		case 'blank':
+		case 'empty':
+			where[field] = null
+			break
+		case 'notBlank':
+			where[field] = { not: null }
+			break
+		default:
+			console.warn('Unknown number filter type:', type)
 	}
 }
 
 /**
- * Applies a not-null filter
+ * Handles date filters (equals, greaterThan, lessThan, inRange, etc.)
  */
-function applyNotBlankFilter<TWhereInput extends Record<string, any>>(where: TWhereInput, field: string): void {
-	const condition = { not: null }
-	if (field.includes('.')) {
-		applyNestedFilter(where, field, condition)
-	} else {
-		;(where as any)[field] = condition
+function applyDateFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
+	const type = filter.type as string
+	const dateFrom = filter.dateFrom
+	const dateTo = filter.dateTo
+
+	switch (type) {
+		case 'equals':
+			where[field] = dateFrom
+			break
+		case 'notEqual':
+			where[field] = { not: dateFrom }
+			break
+		case 'greaterThan':
+			where[field] = { gt: dateFrom }
+			break
+		case 'greaterThanOrEqual':
+			where[field] = { gte: dateFrom }
+			break
+		case 'lessThan':
+			where[field] = { lt: dateFrom }
+			break
+		case 'lessThanOrEqual':
+			where[field] = { lte: dateFrom }
+			break
+		case 'inRange':
+			where[field] = { gte: dateFrom, lte: dateTo }
+			break
+		case 'blank':
+		case 'empty':
+			where[field] = null
+			break
+		case 'notBlank':
+			where[field] = { not: null }
+			break
+		default:
+			console.warn('Unknown date filter type:', type)
 	}
 }
 
 /**
- * Applies a set filter (IN operator)
+ * Handles set filters (multi-select)
  */
-function applySetFilter<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	values: unknown[],
-	fieldName?: string,
-): void {
-	const normalizedValues = normalizeValue(values, fieldName) as unknown[]
+function applySetFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
+	const values = filter.values as unknown[]
+	if (!values || values.length === 0) return
 
-	// Check if this is a boolean filter (values are "Yes"/"No", "true"/"false", or boolean primitives)
-	const isBooleanFilter = normalizedValues.every(
-		(v) => v === 'Yes' || v === 'No' || v === 'true' || v === 'false' || v === true || v === false,
-	)
+	// Check if this is a boolean filter
+	const booleanValues = new Set(['Yes', 'No', 'true', 'false', true, false])
+	const isBooleanFilter = values.every((v) => booleanValues.has(v as any))
 
 	if (isBooleanFilter) {
-		// Convert "Yes"/"No"/"true"/"false" to boolean for Prisma
-		const booleanValues = normalizedValues.map((v) => {
-			if (v === 'Yes' || v === 'true' || v === true) return true
-			if (v === 'No' || v === 'false' || v === false) return false
-			return v
-		})
+		// Convert to boolean
+		const converted = values.map((v) => v === 'Yes' || v === 'true' || v === true)
 
-		// For boolean fields, use equals or OR instead of `in`
-		if (booleanValues.length === 1) {
-			// Single value - use direct equality
-			applyEqualsFilter(where, field, booleanValues[0], fieldName)
-		} else if (booleanValues.length === 2) {
-			// Both true and false selected - don't filter at all
-			// (this means "show all")
-			return
+		// Single value - use direct equality
+		if (converted.length === 1) {
+			where[field] = converted[0]
 		}
+		// Both true and false selected - no filter needed (show all)
+		// length === 2 means both values, so we return without adding a filter
 	} else {
 		// Non-boolean set filter - use `in` operator
-		if (field.includes('.')) {
-			applyNestedFilter(where, field, { in: normalizedValues })
-		} else {
-			;(where as any)[field] = { in: normalizedValues }
-		}
+		where[field] = { in: values }
 	}
 }
 
 /**
- * Filter strategy registry - maps filter types to their handlers
+ * Applies a filter to a field (main entry point)
+ * Determines filterType first, then dispatches to appropriate handler
  */
-const filterStrategies: Record<string, FilterStrategy<any>> = {
-	equals: (where, field, value, fieldName) => applyEqualsFilter(where, field, value, fieldName),
-	notEqual: (where, field, value, fieldName) => applyComparisonFilter(where, field, value, 'not', fieldName),
-	lessThan: (where, field, value, fieldName) => applyComparisonFilter(where, field, value, 'lt', fieldName),
-	lessThanOrEqual: (where, field, value, fieldName) => applyComparisonFilter(where, field, value, 'lte', fieldName),
-	greaterThan: (where, field, value, fieldName) => applyComparisonFilter(where, field, value, 'gt', fieldName),
-	greaterThanOrEqual: (where, field, value, fieldName) => applyComparisonFilter(where, field, value, 'gte', fieldName),
-	contains: (where, field, value, fieldName) => applyTextFilter(where, field, value, 'contains', fieldName),
-	notContains: (where, field, value, fieldName) => applyNotContainsFilter(where, field, value, fieldName),
-	startsWith: (where, field, value, fieldName) => applyTextFilter(where, field, value, 'startsWith', fieldName),
-	endsWith: (where, field, value, fieldName) => applyTextFilter(where, field, value, 'endsWith', fieldName),
-	blank: (where, field) => applyBlankFilter(where, field),
-	empty: (where, field) => applyBlankFilter(where, field),
-	notBlank: (where, field) => applyNotBlankFilter(where, field),
-}
-
-/**
- * Applies a filter to a field using the strategy registry
- */
-function applyFilterToField<TWhereInput extends Record<string, any>>(
-	where: TWhereInput,
-	field: string,
-	filterValue: unknown,
-): void {
+function applyFilterToField(where: Record<string, any>, field: string, filterValue: unknown): void {
 	if (!filterValue || typeof filterValue !== 'object') return
 
 	const filter = filterValue as Record<string, unknown>
 
-	// Number/Date filter with type (e.g., equals, lessThan, greaterThan, inRange)
-	if ('filterType' in filter || 'type' in filter) {
-		const comparisonType = (filter.type || filter.filterType) as string
+	// Determine filterType (text, number, date, set)
+	const filterType = filter.filterType as string | undefined
 
-		// Handle blank/notBlank using strategy
-		if (comparisonType === 'blank' || comparisonType === 'empty' || comparisonType === 'notBlank') {
-			const strategy = filterStrategies[comparisonType]
-			if (strategy) {
-				strategy(where, field, null)
-			}
-			return
-		}
-
-		// Handle inRange separately (requires two values)
-		if (comparisonType === 'inRange' && 'filter' in filter && 'filterTo' in filter) {
-			applyRangeFilter(where, field, filter.filter, filter.filterTo, field)
-			return
-		}
-
-		// Handle simple comparison operators
-		const filterValueToUse = 'filter' in filter ? filter.filter : 'dateFrom' in filter ? filter.dateFrom : null
-		if (filterValueToUse !== null && filterValueToUse !== undefined) {
-			const strategy = filterStrategies[comparisonType]
-			if (strategy) {
-				strategy(where, field, filterValueToUse, field)
-			}
-			return
-		}
-	}
-
-	// Text filter (legacy/fallback for simple string filters)
-	if ('filter' in filter && typeof filter.filter === 'string' && !('filterType' in filter) && !('type' in filter)) {
-		applyTextFilter(where, field, filter.filter, 'contains', field)
-		return
-	}
-
-	// Set filter
-	if ('values' in filter && Array.isArray(filter.values)) {
-		applySetFilter(where, field, filter.values, field)
-		return
-	}
-
-	// Date filter (legacy dateFrom/dateTo format)
-	if (('dateFrom' in filter || 'dateTo' in filter) && !('type' in filter) && !('filterType' in filter)) {
-		applyRangeFilter(where, field, filter.dateFrom, filter.dateTo, field)
-		return
+	switch (filterType) {
+		case 'text':
+			applyTextFilter(where, field, filter)
+			break
+		case 'number':
+			applyNumberFilter(where, field, filter)
+			break
+		case 'date':
+			applyDateFilter(where, field, filter)
+			break
+		case 'set':
+			applySetFilter(where, field, filter)
+			break
+		default:
+			console.warn('Unknown filter type:', filterType, 'for field:', field, 'filter:', filter)
 	}
 }
 
@@ -731,32 +600,26 @@ function applyFilterToField<TWhereInput extends Record<string, any>>(
 
 /**
  * Extracts the actual filter value from AG Grid's filter model.
- * Handles both simple filters and combined filters (condition1/condition2).
+ * Uses the filterType field to determine which property contains the value.
  */
 function extractFilterValue(filterValue: unknown): unknown {
 	if (!filterValue || typeof filterValue !== 'object') return filterValue
 
 	const filter = filterValue as Record<string, unknown>
+	const filterType = filter.filterType as string | undefined
 
-	// If it has condition1, extract that (AG Grid combined filters)
-	if ('condition1' in filter) {
-		return filter.condition1
+	switch (filterType) {
+		case 'date':
+			return filter.dateFrom
+		case 'number':
+		case 'text':
+			return filter.filter
+		case 'set':
+			return filter.values
+		default:
+			// Fallback for filters without explicit filterType
+			return filter.filter ?? filterValue
 	}
-
-	// For date filters, extract the dateFrom or dateTo value
-	if ('dateFrom' in filter) {
-		return new Date(filter.dateFrom as string)
-	}
-	if ('dateTo' in filter) {
-		return new Date(filter.dateTo as string)
-	}
-
-	// For simple filters with a 'filter' property
-	if ('filter' in filter) {
-		return filter.filter
-	}
-
-	return filterValue
 }
 
 /**
@@ -788,19 +651,14 @@ function buildWhereClause(
 		for (let i = 0; i < groupKeys.length; i++) {
 			const col = rowGroupCols[i]
 			const key = groupKeys[i]
-			const fieldName = col.field || col.id
-			const normalizedKey = normalizeValue(key, fieldName)
 
 			const computedField = config.computedFields?.find((cf) => cf.columnId === col.id)
 			if (computedField) {
 				// Use transform to get WHERE conditions for computed field
-				const transformed = computedField.transform(normalizedKey)
+				const transformed = computedField.transform(key)
 				mergeWhereConditions(where, transformed)
-			} else if (col.id.includes('.')) {
-				// Auto-handle nested fields from column id
-				applyNestedFilter(where, col.id, normalizedKey)
 			} else {
-				;(where as any)[col.id] = normalizedKey
+				where[col.id] = key
 			}
 		}
 	}
@@ -827,7 +685,9 @@ function buildWhereClause(
 		where = config.transformWhere(where, request)
 	}
 
-	return where
+	// Transform flat dotted keys to nested Prisma format
+	// This happens after all filters are applied, in one place
+	return transformForPrisma(where)
 }
 
 // ============================================================================
@@ -838,7 +698,7 @@ function buildWhereClause(
  * Builds the ORDER BY clause for an AG Grid request
  */
 function buildOrderByClause(request: AGGridRequest, config: AGGridQueryConfig): Record<string, unknown>[] {
-	const orderBy: Record<string, unknown>[] = []
+	const orderBy: Record<string, any>[] = []
 
 	if (request.sortModel && request.sortModel.length > 0) {
 		for (const sort of request.sortModel) {
@@ -849,24 +709,19 @@ function buildOrderByClause(request: AGGridRequest, config: AGGridQueryConfig): 
 				continue
 			}
 
-			// Not a computed field, check if it's a nested field path
-			if (sort.colId.includes('.')) {
-				orderBy.push(createNestedSort(sort.colId, sort.sort))
-			} else {
-				orderBy.push({ [sort.colId]: sort.sort })
-			}
+			// Add sort with flat key (transformation happens later)
+			orderBy.push({ [sort.colId]: sort.sort })
 		}
 	} else if (config.defaultSort) {
 		for (const [field, direction] of Object.entries(config.defaultSort)) {
-			if (field.includes('.')) {
-				orderBy.push(createNestedSort(field, direction))
-			} else {
-				orderBy.push({ [field]: direction })
-			}
+			// Add sort with flat key (transformation happens later)
+			orderBy.push({ [field]: direction })
 		}
 	}
 
-	return orderBy
+	// Transform flat dotted keys to nested Prisma format
+	// This happens after all sorts are added, in one place
+	return transformForPrisma(orderBy)
 }
 
 // ============================================================================
@@ -874,98 +729,128 @@ function buildOrderByClause(request: AGGridRequest, config: AGGridQueryConfig): 
 // ============================================================================
 
 /**
+ * Extracts a group value from a record (handles computed, nested, and direct fields)
+ */
+function extractGroupValue<TRecord = any>(
+	record: TRecord,
+	columnId: string,
+	computedFields?: ComputedField<TRecord>[],
+): unknown {
+	const computedField = computedFields?.find((cf) => cf.columnId === columnId)
+	if (computedField) {
+		return computedField.valueGetter(record)
+	}
+
+	// Handle nested or direct field
+	return columnId.includes('.') ? getNestedValue(record, columnId) : (record as Record<string, unknown>)[columnId]
+}
+
+/**
+ * Compares two values for sorting
+ */
+function compareValues(a: unknown, b: unknown, direction: 'asc' | 'desc'): number {
+	const aVal = a ?? ''
+	const bVal = b ?? ''
+
+	// Numeric comparison
+	if (typeof aVal === 'number' && typeof bVal === 'number') {
+		return direction === 'asc' ? aVal - bVal : bVal - aVal
+	}
+
+	// String comparison
+	const comparison = String(aVal).localeCompare(String(bVal))
+	return direction === 'asc' ? comparison : -comparison
+}
+
+/**
+ * Builds a map of group keys to their counts
+ */
+function buildGroupMap<TRecord = any>(
+	records: TRecord[],
+	groupColumnId: string,
+	computedFields?: ComputedField<TRecord>[],
+): Map<string, number> {
+	const groupMap = new Map<string, number>()
+
+	for (const record of records) {
+		const groupValue = extractGroupValue(record, groupColumnId, computedFields)
+		const groupKey = String(groupValue ?? '').trim()
+
+		if (groupKey) {
+			groupMap.set(groupKey, (groupMap.get(groupKey) || 0) + 1)
+		}
+	}
+
+	return groupMap
+}
+
+/**
+ * Determines the sort configuration for groups
+ */
+function getGroupSortConfig(
+	sortModel: AGGridSort[],
+	rowGroupCols: AGGridColumn[],
+	defaultColumnId: string,
+): { colId: string; direction: 'asc' | 'desc' } {
+	if (sortModel && sortModel.length > 0) {
+		// Find a sort matching a group column, or use the first sort
+		const sort = sortModel.find((s) => rowGroupCols.some((col) => col.id === s.colId)) || sortModel[0]
+		return { colId: sort.colId, direction: sort.sort }
+	}
+
+	return { colId: defaultColumnId, direction: 'asc' }
+}
+
+/**
+ * Converts group map entries to sorted group rows
+ */
+function createSortedGroupRows(
+	groupMap: Map<string, number>,
+	groupColumnId: string,
+	sortConfig: { colId: string; direction: 'asc' | 'desc' },
+): any[] {
+	return Array.from(groupMap.entries())
+		.map(([key, count]) =>
+			transformForPrisma({
+				childCount: count,
+				[groupColumnId]: key,
+			}),
+		)
+		.sort((a, b) => {
+			const aVal = getNestedValue(a, sortConfig.colId) ?? getNestedValue(a, groupColumnId)
+			const bVal = getNestedValue(b, sortConfig.colId) ?? getNestedValue(b, groupColumnId)
+			return compareValues(aVal, bVal, sortConfig.direction)
+		})
+}
+
+/**
  * Handles a group-level request (returns group rows with counts)
  */
-async function handleGroupRequest<TRecord = any>(
+async function handleGroupRequest(
 	queryParams: AGGridQueryParams,
-	config: AGGridQueryConfig<TRecord>,
+	config: AGGridQueryConfig,
 	request: AGGridRequest,
-): Promise<AGGridResponse<TRecord>> {
+): Promise<AGGridResponse> {
 	const { skip: startRow, take: endRow, groupColumn } = queryParams
 	const { sortModel, rowGroupCols } = request
 
 	// Fetch all records to compute groups (can be optimized with SQL GROUP BY in the future)
 	const allRecords = await config.fetch({ ...queryParams, skip: 0, take: 999999 })
-	const groupMap = new Map<string, number>()
 
 	// Build group map
-	for (const record of allRecords) {
-		let groupValue: unknown = undefined
+	const groupMap = buildGroupMap(allRecords, groupColumn!.id, config.computedFields)
 
-		const computedField = config.computedFields?.find((cf) => cf.columnId === groupColumn!.id)
-		if (computedField) {
-			// Use custom value getter for computed fields
-			groupValue = computedField.valueGetter(record)
-		} else {
-			// Support nested field paths
-			if (groupColumn!.id.includes('.')) {
-				groupValue = getNestedValue(record, groupColumn!.id)
-			} else {
-				groupValue = (record as Record<string, unknown>)[groupColumn!.id]
-			}
-		}
+	// Determine sort configuration
+	const sortConfig = getGroupSortConfig(sortModel, rowGroupCols, groupColumn!.id)
 
-		// Only include non-null, non-undefined values
-		if (groupValue !== null && groupValue !== undefined) {
-			const groupKey = String(groupValue)
-			if (groupKey.trim()) {
-				groupMap.set(groupKey, (groupMap.get(groupKey) || 0) + 1)
-			}
-		}
-	}
+	// Convert to sorted group rows
+	const groups = createSortedGroupRows(groupMap, groupColumn!.id, sortConfig)
 
-	// Convert to group rows
-	const groups = Array.from(groupMap.entries())
-		.map(([key, count]) => {
-			const groupRow: Record<string, unknown> = { childCount: count }
-
-			// For nested fields, create the nested structure
-			if (groupColumn!.id.includes('.')) {
-				const parts = groupColumn!.id.split('.')
-				let current = groupRow
-				for (let i = 0; i < parts.length - 1; i++) {
-					current[parts[i]] = {}
-					current = current[parts[i]] as Record<string, unknown>
-				}
-				current[parts[parts.length - 1]] = key
-			} else {
-				groupRow[groupColumn!.id] = key
-			}
-
-			return groupRow
-		})
-		.sort((a, b) => {
-			// Respect sortModel if provided
-			if (sortModel && sortModel.length > 0) {
-				const sort = sortModel.find((s) => rowGroupCols.some((col) => col.id === s.colId)) || sortModel[0]
-				const aVal = getNestedValue(a, sort.colId) ?? getNestedValue(a, groupColumn!.id) ?? ''
-				const bVal = getNestedValue(b, sort.colId) ?? getNestedValue(b, groupColumn!.id) ?? ''
-
-				// Handle numeric comparison
-				if (typeof aVal === 'number' && typeof bVal === 'number') {
-					return sort.sort === 'asc' ? aVal - bVal : bVal - aVal
-				}
-
-				// String comparison
-				const comparison = String(aVal).localeCompare(String(bVal))
-				return sort.sort === 'asc' ? comparison : -comparison
-			}
-
-			// Default: sort by group column value (ascending)
-			const aVal = getNestedValue(a, groupColumn!.id) ?? ''
-			const bVal = getNestedValue(b, groupColumn!.id) ?? ''
-
-			if (typeof aVal === 'number' && typeof bVal === 'number') {
-				return aVal - bVal
-			}
-
-			return String(aVal).localeCompare(String(bVal))
-		})
-
+	// Apply pagination
 	const paginatedGroups = groups.slice(startRow, startRow + endRow)
 
 	return {
-		rows: paginatedGroups as TRecord[],
+		rows: paginatedGroups,
 		lastRow: groups.length,
 	}
 }
@@ -975,35 +860,25 @@ async function handleGroupRequest<TRecord = any>(
 // ============================================================================
 
 /**
- * Applies computed field value getters to fetched rows
- */
-function applyComputedFields<TRecord = any>(rows: TRecord[], config: AGGridQueryConfig<TRecord>): TRecord[] {
-	if (!config.computedFields) return rows
-
-	return rows.map((record) => {
-		const mapped = { ...record }
-		for (const computedField of config.computedFields!) {
-			// Use custom value getter to compute the display value
-			;(mapped as Record<string, unknown>)[computedField.columnId] = computedField.valueGetter(record)
-		}
-		return mapped
-	})
-}
-
-/**
  * Handles a leaf-level request (returns actual data rows)
  */
-async function handleLeafRequest<TRecord = any>(
-	queryParams: AGGridQueryParams,
-	config: AGGridQueryConfig<TRecord>,
-): Promise<AGGridResponse<TRecord>> {
+async function handleLeafRequest(queryParams: AGGridQueryParams, config: AGGridQueryConfig): Promise<AGGridResponse> {
 	const { groupKeys } = queryParams
 
 	// Fetch leaf data
 	const [rows, totalCount] = await Promise.all([config.fetch(queryParams), config.count(queryParams)])
 
 	// Apply computed field value getters
-	const mappedRows = applyComputedFields(rows, config)
+	let mappedRows = rows
+	if (config.computedFields) {
+		mappedRows = rows.map((record) => {
+			const mapped = { ...record }
+			for (const computedField of config.computedFields!) {
+				mapped[computedField.columnId] = computedField.valueGetter(record)
+			}
+			return mapped
+		})
+	}
 
 	return {
 		rows: mappedRows,
@@ -1119,7 +994,10 @@ async function handleLeafRequest<TRecord = any>(
  */
 export function createAGGridQuery<TRecord = any>(config: AGGridQueryConfig<TRecord>) {
 	return async (request: AGGridRequest): Promise<AGGridResponse<TRecord>> => {
-		const { startRow = 0, endRow = 100, rowGroupCols = [], groupKeys = [] } = request
+		// Normalize all values in the request upfront
+		const normalizedRequest = normalizeRequest(request, config.skipNormalization)
+
+		const { startRow = 0, endRow = 100, rowGroupCols = [], groupKeys = [] } = normalizedRequest
 
 		// Determine if we're handling groups or leaf data
 		const isGroupRequest = rowGroupCols.length > 0 && groupKeys.length < rowGroupCols.length
@@ -1127,10 +1005,10 @@ export function createAGGridQuery<TRecord = any>(config: AGGridQueryConfig<TReco
 		const groupColumn = isGroupRequest ? rowGroupCols[groupLevel] : undefined
 
 		// Build WHERE clause
-		const where = buildWhereClause(request, config, groupKeys, rowGroupCols)
+		const where = buildWhereClause(normalizedRequest, config, groupKeys, rowGroupCols)
 
 		// Build ORDER BY clause
-		const orderBy = buildOrderByClause(request, config)
+		const orderBy = buildOrderByClause(normalizedRequest, config)
 
 		// Build query params
 		const queryParams: AGGridQueryParams = {
@@ -1146,7 +1024,7 @@ export function createAGGridQuery<TRecord = any>(config: AGGridQueryConfig<TReco
 
 		// Dispatch to appropriate handler
 		if (isGroupRequest) {
-			return await handleGroupRequest(queryParams, config, request)
+			return await handleGroupRequest(queryParams, config, normalizedRequest)
 		} else {
 			return await handleLeafRequest(queryParams, config)
 		}
@@ -1188,9 +1066,14 @@ export function createAGGridQuery<TRecord = any>(config: AGGridQueryConfig<TReco
  * })
  * ```
  */
-export function createAGGridDatasource<TData = unknown>(
-	fetcher: AGGridDataFetcher<TData>,
-	options: AGGridDatasourceOptions = {},
+export function createAGGridDatasource<TData = any>(
+	fetcher: (request: AGGridRequest) => Promise<AGGridResponse<TData>>,
+	options: {
+		onError?: (error: unknown) => void
+		onBeforeRequest?: (request: AGGridRequest) => void
+		onAfterResponse?: (response: AGGridResponse) => void
+		debug?: boolean
+	} = {},
 ): IServerSideDatasource<TData> {
 	const { onError, onBeforeRequest, onAfterResponse, debug = false } = options
 
@@ -1201,7 +1084,7 @@ export function createAGGridDatasource<TData = unknown>(
 				const request: AGGridRequest = {
 					startRow: params.request.startRow,
 					endRow: params.request.endRow,
-					filterModel: params.request.filterModel as AGGridFilterModel,
+					filterModel: params.request.filterModel as Record<string, unknown>,
 					sortModel: params.request.sortModel as AGGridSort[],
 					rowGroupCols: params.request.rowGroupCols as AGGridColumn[],
 					groupKeys: params.request.groupKeys,
@@ -1255,47 +1138,6 @@ export function createAGGridDatasource<TData = unknown>(
 			}
 		},
 	}
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Checks if the current request is for leaf-level data (not groups)
- *
- * @param request - AG Grid request
- * @returns true if requesting leaf data, false if requesting groups
- */
-export function isLeafDataRequest(request: AGGridRequest): boolean {
-	const hasGrouping = request.rowGroupCols && request.rowGroupCols.length > 0
-	if (!hasGrouping) return true
-
-	const currentGroupLevel = request.groupKeys?.length ?? 0
-	return currentGroupLevel >= request.rowGroupCols.length
-}
-
-/**
- * Gets the current grouping level (0-based)
- *
- * @param request - AG Grid request
- * @returns Current group level, or -1 if not grouping
- */
-export function getCurrentGroupLevel(request: AGGridRequest): number {
-	if (!request.rowGroupCols || request.rowGroupCols.length === 0) return -1
-	return request.groupKeys?.length ?? 0
-}
-
-/**
- * Gets the column being grouped at the current level
- *
- * @param request - AG Grid request
- * @returns Column configuration for current group level, or undefined
- */
-export function getCurrentGroupColumn(request: AGGridRequest): AGGridColumn | undefined {
-	const level = getCurrentGroupLevel(request)
-	if (level < 0 || !request.rowGroupCols) return undefined
-	return request.rowGroupCols[level]
 }
 
 // ============================================================================

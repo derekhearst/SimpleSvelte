@@ -9,9 +9,17 @@ export { clickOutside, FormHelper, RoleHelper as roleHelper, formatDate } from '
 
 // AG Grid Server-Side Row Model API
 export {
+	// Main functions
 	createAGGridQuery,
 	createAGGridDatasource,
+	// Types
+	type AGGridRequest,
+	type AGGridResponse,
+	type ComputedField,
+	type AGGridQueryConfig,
+	// Zod schema
 	agGridRequestSchema,
+	// Config helpers
 	defaultSSRMColDef,
 	defaultSSRMGridOptions,
 	filterConfigs,
