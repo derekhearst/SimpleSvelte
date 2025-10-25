@@ -85,7 +85,7 @@ const agGridSortSchema = z.object({
 export const agGridRequestSchema = z.object({
 	startRow: z.number().optional(),
 	endRow: z.number().optional(),
-	filterModel: z.record(z.unknown()).optional(),
+	filterModel: z.record(z.string(), z.any()).optional(),
 	sortModel: z.array(agGridSortSchema),
 	rowGroupCols: z.array(agGridColumnSchema),
 	groupKeys: z.array(z.string()),
@@ -596,6 +596,8 @@ function applyDateFilter(where: Record<string, any>, field: string, filter: Reco
  */
 function applySetFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
 	const values = filter.values as unknown[]
+	
+	// Empty values array means no filter selected - skip this filter entirely
 	if (!values || values.length === 0) return
 
 	// Check if this is a boolean filter
