@@ -1,6 +1,6 @@
 {
 	"name": "simplesvelte",
-	"version": "2.2.8",
+	"version": "2.2.9",
 	"scripts": {
 		"dev": "bun vite dev",
 		"build": "bun vite build && bun run prepack",

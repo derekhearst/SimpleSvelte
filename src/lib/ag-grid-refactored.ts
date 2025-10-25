@@ -593,8 +593,22 @@ function applyNumberFilter(where: Record<string, any>, field: string, filter: Re
  */
 function applyDateFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
 	const type = filter.type as string
-	const dateFrom = filter.dateFrom
-	const dateTo = filter.dateTo
+	let dateFrom = filter.dateFrom
+	let dateTo = filter.dateTo
+
+	// Convert date strings to ISO-8601 DateTime format for Prisma
+	if (dateFrom && typeof dateFrom === 'string') {
+		// If it's just a date (YYYY-MM-DD), convert to start of day in ISO format
+		if (/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
+			dateFrom = new Date(dateFrom + 'T00:00:00.000Z').toISOString()
+		}
+	}
+	if (dateTo && typeof dateTo === 'string') {
+		// If it's just a date (YYYY-MM-DD), convert to end of day in ISO format
+		if (/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+			dateTo = new Date(dateTo + 'T23:59:59.999Z').toISOString()
+		}
+	}
 
 	switch (type) {
 		case 'equals':
