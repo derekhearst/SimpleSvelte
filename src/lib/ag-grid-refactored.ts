@@ -136,7 +136,9 @@ type PrismaFilter<T> = T extends string
 			? T | { equals?: T; not?: T; in?: T[]; notIn?: T[]; lt?: T; lte?: T; gt?: T; gte?: T }
 			: T extends boolean
 				? T | { equals?: T; not?: T }
-				: T | { equals?: T; not?: T; in?: T[]; notIn?: T[] }
+				: T extends object
+					? T | Partial<{ [K in keyof T]?: PrismaFilter<T[K]> }>
+					: T | { equals?: T; not?: T; in?: T[]; notIn?: T[] }
 
 /**
  * Transform return type that constrains field names to TRecord keys
