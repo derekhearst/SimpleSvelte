@@ -94,9 +94,57 @@ export const agGridRequestSchema = z.object({
 	pivotMode: z.boolean(),
 })
 
+/**
+ * Default AG Grid request object (initial/empty state)
+ * Use this as a fallback or initial value when no request is provided
+ */
+export const defaultAGGridRequest: AGGridRequest = {
+	startRow: 0,
+	endRow: 100,
+	filterModel: {},
+	sortModel: [],
+	rowGroupCols: [],
+	groupKeys: [],
+	valueCols: [],
+	pivotCols: [],
+	pivotMode: false,
+}
+
 // ============================================================================
 // Server-Side Query Building API
 // ============================================================================
+
+/**
+ * Prisma-style filter operators for different field types
+ */
+type PrismaFilter<T> = T extends string
+	?
+			| T
+			| {
+					equals?: T
+					not?: T
+					in?: T[]
+					notIn?: T[]
+					contains?: T
+					startsWith?: T
+					endsWith?: T
+					mode?: 'default' | 'insensitive'
+			  }
+	: T extends number
+		? T | { equals?: T; not?: T; in?: T[]; notIn?: T[]; lt?: T; lte?: T; gt?: T; gte?: T }
+		: T extends Date
+			? T | { equals?: T; not?: T; in?: T[]; notIn?: T[]; lt?: T; lte?: T; gt?: T; gte?: T }
+			: T extends boolean
+				? T | { equals?: T; not?: T }
+				: T | { equals?: T; not?: T; in?: T[]; notIn?: T[] }
+
+/**
+ * Transform return type that constrains field names to TRecord keys
+ * and provides proper typing for Prisma filter operators based on field types
+ */
+type TransformResult<TRecord> = {
+	[K in keyof TRecord]?: PrismaFilter<TRecord[K]>
+}
 
 /**
  * Parsed query parameters from AG Grid request
@@ -163,7 +211,7 @@ type AGGridQueryParams = {
  * }
  * ```
  */
-export type ComputedField<TRecord = any> = {
+export type ComputedField<TRecord = any, TValue = any> = {
 	/** Column ID in AG Grid */
 	columnId: string
 	/**
@@ -173,7 +221,7 @@ export type ComputedField<TRecord = any> = {
 	 * @param record - The database record (typed as TRecord)
 	 * @returns The computed display value
 	 */
-	valueGetter: (record: TRecord) => any
+	valueGetter: (record: TRecord) => TValue
 	/**
 	 * Transform function to map the computed value to database conditions.
 	 * This is used for both filtering and grouping.
@@ -184,7 +232,7 @@ export type ComputedField<TRecord = any> = {
 	 * - Applies the returned conditions to the WHERE clause
 	 *
 	 * @param value - The computed value to transform (matches what valueGetter returns)
-	 * @returns Partial WHERE clause with conditions for one or more database fields
+	 * @returns Partial WHERE clause with conditions for one or more database fields from TRecord
 	 *
 	 * @example Single field
 	 * ```typescript
@@ -201,7 +249,7 @@ export type ComputedField<TRecord = any> = {
 	 * })
 	 * ```
 	 */
-	transform: (value: any) => Record<string, any>
+	transform: (value: TValue) => TransformResult<TRecord>
 }
 
 /**
@@ -282,7 +330,7 @@ function normalizeValue(value: unknown, fieldName?: string, skipPatterns?: (stri
 		const trimmed = value.trim()
 		if (trimmed === 'true') return true
 		if (trimmed === 'false') return false
-		
+
 		// Parse numeric strings back to numbers (e.g., "51.6" -> 51.6)
 		if (/^-?\d+\.?\d*$/.test(trimmed)) {
 			// Skip conversion if field matches any skip pattern
@@ -640,6 +688,41 @@ function mergeWhereConditions(where: Record<string, any>, transformed: Record<st
 // ============================================================================
 
 /**
+ * Checks if a value is a date with non-zero time component
+ */
+function hasTimeComponent(value: unknown): boolean {
+	if (!value) return false
+	const date = value instanceof Date ? value : new Date(value as string)
+	if (isNaN(date.getTime())) return false
+
+	return (
+		date.getUTCHours() !== 0 ||
+		date.getUTCMinutes() !== 0 ||
+		date.getUTCSeconds() !== 0 ||
+		date.getUTCMilliseconds() !== 0
+	)
+}
+
+/**
+ * Creates a date range filter for the same day (UTC)
+ */
+function createDateRangeFilter(dateValue: unknown): { gte: string; lt: string } {
+	const date = dateValue instanceof Date ? dateValue : new Date(dateValue as string)
+
+	// Start of day in UTC
+	const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0))
+
+	// Start of next day in UTC
+	const startOfNextDay = new Date(startOfDay)
+	startOfNextDay.setUTCDate(startOfNextDay.getUTCDate() + 1)
+
+	return {
+		gte: startOfDay.toISOString(),
+		lt: startOfNextDay.toISOString(),
+	}
+}
+
+/**
  * Builds the WHERE clause for an AG Grid request
  */
 function buildWhereClause(
@@ -662,7 +745,13 @@ function buildWhereClause(
 				const transformed = computedField.transform(key)
 				mergeWhereConditions(where, transformed)
 			} else {
-				where[col.id] = key
+				// Check if this is a date with time component
+				// If so, use date range instead of exact match
+				if (hasTimeComponent(key)) {
+					where[col.id] = createDateRangeFilter(key)
+				} else {
+					where[col.id] = key
+				}
 			}
 		}
 	}
@@ -1166,8 +1255,7 @@ export const defaultSSRMColDef: import('ag-grid-community').ColDef = {
  */
 export const defaultSSRMGridOptions: Partial<import('ag-grid-community').GridOptions> = {
 	rowModelType: 'serverSide',
-	pagination: true,
-	paginationPageSize: 100,
+	pagination: false,
 	cacheBlockSize: 100,
 	rowGroupPanelShow: 'always',
 	groupDisplayType: 'groupRows',
