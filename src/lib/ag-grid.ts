@@ -677,8 +677,10 @@ function applyFilterToField<TWhereInput>(where: TWhereInput, field: string, filt
 		}
 
 		// Handle simple comparison operators
-		if ('filter' in filter && filter.filter !== null && filter.filter !== undefined) {
-			const normalizedValue = normalizeValue(filter.filter, field)
+		// Date filters may use 'dateFrom' instead of 'filter' for the value
+		const filterValue = 'filter' in filter ? filter.filter : 'dateFrom' in filter ? filter.dateFrom : null
+		if (filterValue !== null && filterValue !== undefined) {
+			const normalizedValue = normalizeValue(filterValue, field)
 			const condition: Record<string, unknown> = {}
 
 			switch (comparisonType) {
