@@ -15,7 +15,7 @@ export {
 	defaultSSRMColDef,
 	defaultSSRMGridOptions,
 	filterConfigs,
-} from './ag-grid.js'
+} from './ag-grid-refactored.js'
 
 // Export CSS for consumers
 import './styles.css'
