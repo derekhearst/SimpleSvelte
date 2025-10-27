@@ -12,6 +12,9 @@ export {
 	// Main functions
 	createAGGridQuery,
 	createAGGridDatasource,
+	// Parameter persistence functions
+	saveParams,
+	fetchParams,
 	// Types
 	type AGGridRequest,
 	type AGGridResponse,
@@ -19,6 +22,8 @@ export {
 	type AGGridQueryConfig,
 	// Zod schema
 	agGridRequestSchema,
+	// Default request
+	defaultAGGridRequest,
 	// Config helpers
 	defaultSSRMColDef,
 	defaultSSRMGridOptions,
