@@ -111,6 +111,137 @@ export const defaultAGGridRequest: AGGridRequest = {
 }
 
 // ============================================================================
+// Parameter Storage API
+// ============================================================================
+
+/**
+ * Storage for AG Grid request parameters per user and table
+ * Key format: `agGridParams:${userId}:${tableKey}`
+ */
+const paramsStorage = new Map<string, AGGridRequest>()
+
+/**
+ * Generates a storage key for AG Grid parameters
+ */
+function getStorageKey(userId: string | number, tableKey: string): string {
+	return `agGridParams:${userId}:${tableKey}`
+}
+
+/**
+ * Saves AG Grid request parameters for a specific user and table
+ *
+ * Call this in your grid query function to save the current filter, sort, and grouping state
+ * on every request. This allows mutations to restore the user's view when refreshing the grid.
+ *
+ * @param tableKey - Unique identifier for the table/grid (e.g., 'users-table', 'interventions-grid')
+ * @param userId - User identifier (string or number)
+ * @param params - AG Grid request parameters to save (filters, sorts, groups, pagination)
+ *
+ * @example Grid Query - Save parameters on every request
+ * ```typescript
+ * export const getUsersGrid = query(agGridRequestSchema, async (request) => {
+ *   const user = await getActiveUser()
+ *
+ *   // Save parameters on every grid request
+ *   saveParams('users-table', user.id, request)
+ *
+ *   return await createAGGridQuery({
+ *     async fetch(params) {
+ *       return await DB.user.findMany({
+ *         where: params.where,
+ *         orderBy: params.orderBy,
+ *         skip: params.skip,
+ *         take: params.take,
+ *       })
+ *     },
+ *     async count(params) {
+ *       return await DB.user.count({ where: params.where })
+ *     },
+ *   })(request)
+ * })
+ * ```
+ */
+export function saveParams(tableKey: string, userId: string | number, params: AGGridRequest): void {
+	const key = getStorageKey(userId, tableKey)
+	paramsStorage.set(key, params)
+}
+
+/**
+ * Fetches previously saved AG Grid request parameters for a specific user and table
+ *
+ * Returns the last saved parameters, or the default AG Grid request if none exist.
+ * Use this in mutation commands (create/update/delete) to refresh the grid with the
+ * user's last used filters, sorts, and grouping.
+ *
+ * @param tableKey - Unique identifier for the table/grid (e.g., 'users-table', 'interventions-grid')
+ * @param userId - User identifier (string or number)
+ * @returns Saved AG Grid request parameters, or `defaultAGGridRequest` if none exist
+ *
+ * @example Create Command - Refresh grid with last used filters
+ * ```typescript
+ * export const createUser = command(userSchema, async (data) => {
+ *   const user = await getActiveUser()
+ *
+ *   // Create the new user
+ *   const newUser = await DB.user.create({ data })
+ *
+ *   // Fetch last used parameters (or defaults if none exist)
+ *   const lastParams = fetchParams('users-table', user.id)
+ *
+ *   // Refresh the grid query with last used filters/sorts
+ *   await getUsersGrid(lastParams).refresh()
+ *
+ *   return newUser
+ * })
+ * ```
+ *
+ * @example Update Command - Refresh grid with last used filters
+ * ```typescript
+ * export const updateUser = command(
+ *   z.object({ id: z.number(), data: userSchema.partial() }),
+ *   async ({ id, data }) => {
+ *     const user = await getActiveUser()
+ *
+ *     // Update the user
+ *     const updatedUser = await DB.user.update({ where: { id }, data })
+ *
+ *     // Fetch last used parameters (or defaults if none exist)
+ *     const lastParams = fetchParams('users-table', user.id)
+ *
+ *     // Refresh the grid query with last used filters/sorts
+ *     await getUsersGrid(lastParams).refresh()
+ *
+ *     return updatedUser
+ *   }
+ * )
+ * ```
+ *
+ * @example Multiple Query Refresh - Refresh related queries in parallel
+ * ```typescript
+ * export const deleteUser = command(z.number(), async (id) => {
+ *   const user = await getActiveUser()
+ *   const deletedUser = await DB.user.findUnique({ where: { id } })
+ *
+ *   await DB.user.delete({ where: { id } })
+ *
+ *   const lastParams = fetchParams('users-table', user.id)
+ *
+ *   // Refresh multiple queries in parallel
+ *   await Promise.all([
+ *     getUsersByDepartment(deletedUser.departmentId).refresh(),
+ *     getUsersGrid(lastParams).refresh(),
+ *   ])
+ *
+ *   return deletedUser
+ * })
+ * ```
+ */
+export function fetchParams(tableKey: string, userId: string | number): AGGridRequest {
+	const key = getStorageKey(userId, tableKey)
+	return paramsStorage.get(key) || defaultAGGridRequest
+}
+
+// ============================================================================
 // Server-Side Query Building API
 // ============================================================================
 
