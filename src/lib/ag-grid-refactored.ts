@@ -1441,6 +1441,7 @@ export const defaultSSRMColDef: import('ag-grid-community').ColDef = {
 	enableRowGroup: true,
 	flex: 1,
 	menuTabs: ['filterMenuTab', 'generalMenuTab'],
+	enableCellChangeFlash: true,
 }
 
 /**
