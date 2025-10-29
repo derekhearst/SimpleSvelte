@@ -549,10 +549,24 @@ function normalizeRequest(request: AGGridRequest, skipPatterns?: (string | RegEx
 		...request,
 		// Normalize filter model
 		filterModel: request.filterModel,
-		// Normalize group keys
+		// Normalize group keys - but respect skipNormalization patterns
 		groupKeys: request.groupKeys.map((key, index) => {
 			const col = request.rowGroupCols[index]
 			const fieldName = col?.field || col?.id
+			
+			// Check if this field should skip normalization
+			if (fieldName && skipPatterns) {
+				const shouldSkip = skipPatterns.some((pattern) => {
+					if (typeof pattern === 'string') {
+						return fieldName === pattern
+					}
+					return pattern.test(fieldName)
+				})
+				if (shouldSkip) {
+					return key // Return original key without normalization
+				}
+			}
+			
 			return normalizeValue(key, fieldName, skipPatterns) as string
 		}),
 	}

@@ -106,7 +106,7 @@
 
 		// For multiple selection, work with current array state
 		const currentValue = Array.isArray(normalizedValue) ? normalizedValue : []
-		
+
 		if (currentValue.includes(itemValue)) {
 			value = currentValue.filter((v) => v !== itemValue)
 		} else {
