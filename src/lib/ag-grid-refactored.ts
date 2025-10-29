@@ -553,7 +553,7 @@ function normalizeRequest(request: AGGridRequest, skipPatterns?: (string | RegEx
 		groupKeys: request.groupKeys.map((key, index) => {
 			const col = request.rowGroupCols[index]
 			const fieldName = col?.field || col?.id
-			
+
 			// Check if this field should skip normalization
 			if (fieldName && skipPatterns) {
 				const shouldSkip = skipPatterns.some((pattern) => {
@@ -566,7 +566,7 @@ function normalizeRequest(request: AGGridRequest, skipPatterns?: (string | RegEx
 					return key // Return original key without normalization
 				}
 			}
-			
+
 			return normalizeValue(key, fieldName, skipPatterns) as string
 		}),
 	}
@@ -747,11 +747,27 @@ function applyDateFilter(where: Record<string, any>, field: string, filter: Reco
 		if (/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
 			dateFrom = new Date(dateFrom + 'T00:00:00.000Z').toISOString()
 		}
+		// If it's a date with space-separated time (YYYY-MM-DD HH:MM:SS), convert to ISO format
+		else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateFrom)) {
+			dateFrom = new Date(dateFrom.replace(' ', 'T') + '.000Z').toISOString()
+		}
+		// If it's already a valid date string, ensure it's in ISO format
+		else if (isDateString(dateFrom)) {
+			dateFrom = new Date(dateFrom).toISOString()
+		}
 	}
 	if (dateTo && typeof dateTo === 'string') {
 		// If it's just a date (YYYY-MM-DD), convert to end of day in ISO format
 		if (/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
 			dateTo = new Date(dateTo + 'T23:59:59.999Z').toISOString()
+		}
+		// If it's a date with space-separated time (YYYY-MM-DD HH:MM:SS), convert to ISO format
+		else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateTo)) {
+			dateTo = new Date(dateTo.replace(' ', 'T') + '.000Z').toISOString()
+		}
+		// If it's already a valid date string, ensure it's in ISO format
+		else if (isDateString(dateTo)) {
+			dateTo = new Date(dateTo).toISOString()
 		}
 	}
 
