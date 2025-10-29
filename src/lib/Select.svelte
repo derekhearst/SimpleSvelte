@@ -48,29 +48,42 @@
 	let detailsOpen = $state(false)
 
 	// Initialize value as array for multiple mode, ensure it's always an array when multiple
-	$effect(() => {
+	// Use derived to avoid timing issues with effects
+	let normalizedValue = $derived.by(() => {
 		if (multiple && !Array.isArray(value)) {
-			value = value ? [value] : []
+			return value ? [value] : []
 		} else if (!multiple && Array.isArray(value)) {
-			value = value.length > 0 ? value[0] : undefined
+			return value.length > 0 ? value[0] : undefined
+		}
+		return value
+	})
+
+	// Sync normalized value back to value prop when it differs
+	$effect(() => {
+		if (normalizedValue !== value) {
+			value = normalizedValue
 		}
 	})
 
 	// For single select mode
 	let selectedItem = $derived.by(() => {
 		if (multiple) return null
-		return items.find((item) => item.value === value)
+		const currentValue = normalizedValue
+		return items.find((item) => item.value === currentValue)
 	})
 	// For multi select mode
 	let selectedItems = $derived.by(() => {
-		if (!multiple || !Array.isArray(value)) return []
-		return items.filter((item) => (value as (string | number)[]).includes(item.value))
+		if (!multiple) return []
+		const currentValue = normalizedValue
+		if (!Array.isArray(currentValue)) return []
+		return items.filter((item) => currentValue.includes(item.value))
 	})
 
 	// Check if an item is selected in multi-select mode
 	function isItemSelected(itemValue: any): boolean {
-		if (!multiple) return itemValue === value
-		return Array.isArray(value) && value.includes(itemValue)
+		if (!multiple) return itemValue === normalizedValue
+		const currentValue = normalizedValue
+		return Array.isArray(currentValue) && currentValue.includes(itemValue)
 	}
 
 	// Toggle item selection in multi-select mode
@@ -79,6 +92,7 @@
 			// Close dropdown and update filter immediately
 			filter = items.find((item) => item.value === itemValue)?.label || ''
 			detailsOpen = false
+			filterMode = 'auto'
 
 			// Wait for DOM update so details closes properly
 			await tick()
@@ -90,20 +104,22 @@
 			return
 		}
 
-		if (!Array.isArray(value)) {
-			value = [itemValue]
-		} else if (value.includes(itemValue)) {
-			value = value.filter((v) => v !== itemValue)
+		// For multiple selection, work with current array state
+		const currentValue = Array.isArray(normalizedValue) ? normalizedValue : []
+		
+		if (currentValue.includes(itemValue)) {
+			value = currentValue.filter((v) => v !== itemValue)
 		} else {
-			value = [...value, itemValue]
+			value = [...currentValue, itemValue]
 		}
 		if (onchange) onchange(value)
 	}
 
 	// Remove specific item from multi-select
 	function removeSelectedItem(itemValue: any) {
-		if (Array.isArray(value)) {
-			value = value.filter((v) => v !== itemValue)
+		const currentValue = normalizedValue
+		if (Array.isArray(currentValue)) {
+			value = currentValue.filter((v) => v !== itemValue)
 			if (onchange) onchange(value)
 		}
 	}
@@ -117,15 +133,30 @@
 	}
 
 	let filter = $state('')
+	let filterMode = $state<'user' | 'auto'>('user') // Track if filter is user-controlled or auto-synced
 
-	// Sync filter with selected item for single select mode
+	// Auto-sync filter for single select when not user-controlled
 	$effect(() => {
-		if (!multiple && selectedItem && !detailsOpen) {
-			filter = selectedItem.label
-		} else if (!multiple && !selectedItem && !detailsOpen) {
-			filter = ''
+		if (!multiple && !detailsOpen && filterMode === 'auto') {
+			if (selectedItem) {
+				filter = selectedItem.label
+			} else {
+				filter = ''
+			}
 		}
 	})
+
+	// Reset filter mode when user starts typing
+	function handleFilterInput() {
+		filterMode = 'user'
+	}
+
+	// Set filter mode to auto when closing dropdown
+	function handleDropdownClose() {
+		if (!multiple) {
+			filterMode = 'auto'
+		}
+	}
 
 	let filteredItems = $derived.by(() => {
 		if (filter.length === 0) return items
@@ -247,12 +278,12 @@
 </script>
 
 <!-- Data inputs for form submission -->
-{#if multiple && Array.isArray(value)}
-	{#each value as val, i (i)}
+{#if multiple && Array.isArray(normalizedValue)}
+	{#each normalizedValue as val, i (val + '-' + i)}
 		<input type="hidden" {name} value={val} />
 	{/each}
-{:else if !multiple && value !== undefined && value !== null && value !== ''}
-	<input type="hidden" {name} {value} />
+{:else if !multiple && normalizedValue !== undefined && normalizedValue !== null && normalizedValue !== ''}
+	<input type="hidden" {name} value={normalizedValue} />
 {/if}
 
 <Label {label} {name} optional={!required} class={className} error={errorText}>
@@ -269,12 +300,14 @@
 				}
 				console.log('clickOutside')
 				detailsOpen = false
+				handleDropdownClose()
 			}}>
 			<summary
 				class="select h-max min-h-10 w-full min-w-12 cursor-pointer !bg-none pr-1"
 				onclick={() => {
 					searchEL?.focus()
 					filter = ''
+					filterMode = 'user'
 				}}>
 				{#if multiple}
 					<!-- Multi-select display with chips -->
@@ -299,11 +332,12 @@
 							class="h-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 							bind:this={searchEL}
 							bind:value={filter}
+							oninput={handleFilterInput}
 							onclick={() => {
 								detailsOpen = true
 							}}
 							placeholder="Search..."
-							required={required && (!Array.isArray(value) || value.length === 0)} />
+							required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
 					</div>
 				{:else}
 					<!-- Single-select display -->
@@ -312,14 +346,15 @@
 						class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 						bind:this={searchEL}
 						bind:value={filter}
+						oninput={handleFilterInput}
 						onclick={() => {
 							detailsOpen = true
 						}}
 						placeholder={displayText}
-						required={required && !value} />
+						required={required && !normalizedValue} />
 				{/if}
 
-				{#if !required && ((multiple && Array.isArray(value) && value.length > 0) || (!multiple && value))}
+				{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
 					<button
 						type="button"
 						class="btn btn-sm btn-circle btn-ghost absolute top-1 right-1"
@@ -370,7 +405,7 @@
 						{/if}
 
 						<!-- Render only visible items (headers and options) -->
-						{#each visibleItems.items as entry (entry.type === 'header' ? 'header-' + entry.group : entry.item.value)}
+						{#each visibleItems.items as entry, idx (entry.type === 'header' ? 'header-' + entry.group + '-' + idx : 'option-' + entry.item.value + '-' + idx)}
 							{#if entry.type === 'header'}
 								<li
 									class="bg-base-200 top-0 z-10 flex items-center justify-center px-2 text-lg font-bold text-gray-700"
