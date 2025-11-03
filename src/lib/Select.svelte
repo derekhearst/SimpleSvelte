@@ -191,14 +191,16 @@
 		return result
 	})
 	// Display text for the input placeholder/value
+	// Using $state.eager to ensure immediate UI feedback when selection changes
 	let displayText = $derived.by(() => {
 		if (multiple) {
-			const count = selectedItems.length
+			const count = $state.eager(selectedItems.length)
 			if (count === 0) return placeholder
 			if (count === 1) return selectedItems[0].label
 			return `${count} items selected`
 		}
-		return selectedItem ? selectedItem.label : placeholder
+		const item = $state.eager(selectedItem)
+		return item ? item.label : placeholder
 	})
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
 

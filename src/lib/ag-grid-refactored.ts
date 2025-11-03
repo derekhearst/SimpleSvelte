@@ -811,8 +811,14 @@ function applyDateFilter(where: Record<string, any>, field: string, filter: Reco
 function applySetFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
 	const values = filter.values as unknown[]
 
-	// Empty values array means no filter selected - skip this filter entirely
-	if (!values || values.length === 0) return
+	// If values array doesn't exist, skip this filter entirely (no filter applied)
+	if (!values) return
+
+	// If values array is empty, user explicitly selected nothing - return no results
+	if (values.length === 0) {
+		where[field] = { in: [] }
+		return
+	}
 
 	// Check if this is a boolean filter
 	const booleanValues = new Set(['Yes', 'No', 'true', 'false', true, false])
