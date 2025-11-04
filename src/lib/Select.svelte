@@ -2,7 +2,6 @@
 	import { clickOutside } from './utils.js'
 	import Input from './Input.svelte'
 	import Label from './Label.svelte'
-	import { tick } from 'svelte'
 	type Option = {
 		value: any
 		label: any
@@ -47,21 +46,15 @@
 
 	let detailsOpen = $state(false)
 
-	// Initialize value as array for multiple mode, ensure it's always an array when multiple
-	// Use derived to avoid timing issues with effects
+	// Ensure value is properly typed for single/multiple mode
+	// Normalize on access rather than maintaining separate state
 	let normalizedValue = $derived.by(() => {
-		if (multiple && !Array.isArray(value)) {
-			return value ? [value] : []
-		} else if (!multiple && Array.isArray(value)) {
-			return value.length > 0 ? value[0] : undefined
-		}
-		return value
-	})
-
-	// Sync normalized value back to value prop when it differs
-	$effect(() => {
-		if (normalizedValue !== value) {
-			value = normalizedValue
+		if (multiple) {
+			// For multiple mode, always work with arrays
+			return Array.isArray(value) ? value : value ? [value] : []
+		} else {
+			// For single mode, extract first value if array
+			return Array.isArray(value) ? (value.length > 0 ? value[0] : undefined) : value
 		}
 	})
 
@@ -79,25 +72,12 @@
 		return items.filter((item) => currentValue.includes(item.value))
 	})
 
-	// Check if an item is selected in multi-select mode
-	function isItemSelected(itemValue: any): boolean {
-		if (!multiple) return itemValue === normalizedValue
-		const currentValue = normalizedValue
-		return Array.isArray(currentValue) && currentValue.includes(itemValue)
-	}
-
-	// Toggle item selection in multi-select mode
-	async function toggleItemSelection(itemValue: any) {
+	// Remove specific item from multi-select
+	function toggleItemSelection(itemValue: any) {
 		if (!multiple) {
 			// Close dropdown and update filter immediately
-			filter = items.find((item) => item.value === itemValue)?.label || ''
+			filterInput = items.find((item) => item.value === itemValue)?.label || ''
 			detailsOpen = false
-
-			// Wait for DOM update so details closes properly
-			await tick()
-
-			// Update value and call onchange - these happen synchronously
-			// even though we're in an async function
 			value = itemValue
 			if (onchange) onchange(value)
 			return
@@ -126,22 +106,22 @@
 	// Clear all selections
 	function clearAll() {
 		value = multiple ? [] : null
-		filter = ''
+		filterInput = ''
 		detailsOpen = false
 		if (onchange) onchange(value)
 	}
 
-	let filter = $state('')
+	// User's filter input - always editable
+	let filterInput = $state('')
 
-	// Auto-sync filter for single select when dropdown is closed
-	$effect(() => {
-		if (!multiple && !detailsOpen) {
-			if (selectedItem) {
-				filter = selectedItem.label
-			} else {
-				filter = ''
-			}
+	// Display value in filter box for single-select when closed
+	let filter = $derived.by(() => {
+		// In single select mode when dropdown is closed, show selected item
+		if (!multiple && !detailsOpen && selectedItem) {
+			return selectedItem.label
 		}
+		// Otherwise use the user's filter input
+		return filterInput
 	})
 
 	let filteredItems = $derived.by(() => {
@@ -180,7 +160,6 @@
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
 
 	// Virtual list implementation
-	let scrollContainer: HTMLDivElement | undefined = $state(undefined)
 	let scrollTop = $state(0)
 	const itemHeight = 40 // Approximate height of each item in pixels
 	const containerHeight = 320 // max-h-80 = 320px
@@ -216,35 +195,42 @@
 	}
 
 	// Scroll to selected item when dropdown opens
-	$effect(() => {
-		if (detailsOpen && scrollContainer) {
-			// Find the index of the selected item in the flat list
-			let selectedIndex = -1
+	function scrollToSelected(node: HTMLDivElement) {
+		const unsubscribe = $effect.root(() => {
+			$effect(() => {
+				if (detailsOpen) {
+					// Find the index of the selected item in the flat list
+					let selectedIndex = -1
 
-			if (!multiple && selectedItem) {
-				// For single select, find the selected item
-				selectedIndex = flatList.findIndex(
-					(entry) => entry.type === 'option' && entry.item.value === selectedItem.value,
-				)
-			} else if (multiple && selectedItems.length > 0) {
-				// For multi select, find the first selected item
-				selectedIndex = flatList.findIndex(
-					(entry) => entry.type === 'option' && selectedItems.some((selected) => selected.value === entry.item.value),
-				)
-			}
+					if (!multiple && selectedItem) {
+						// For single select, find the selected item
+						selectedIndex = flatList.findIndex(
+							(entry) => entry.type === 'option' && entry.item.value === selectedItem.value,
+						)
+					} else if (multiple && selectedItems.length > 0) {
+						// For multi select, find the first selected item
+						selectedIndex = flatList.findIndex(
+							(entry) =>
+								entry.type === 'option' && selectedItems.some((selected) => selected.value === entry.item.value),
+						)
+					}
 
-			if (selectedIndex >= 0) {
-				// Calculate scroll position to center the selected item
-				const targetScrollTop = Math.max(0, selectedIndex * itemHeight - containerHeight / 2 + itemHeight / 2)
+					if (selectedIndex >= 0) {
+						// Calculate scroll position to center the selected item
+						const targetScrollTop = Math.max(0, selectedIndex * itemHeight - containerHeight / 2 + itemHeight / 2)
+						// Set scroll position directly on the DOM node
+						node.scrollTop = targetScrollTop
+					}
+				}
+			})
+		})
 
-				// Update both scroll state and actual scroll position
-				// Set state first so virtual list calculates correctly
-				scrollTop = targetScrollTop
-				scrollContainer.scrollTop = targetScrollTop
-			}
-			// If no selected item, scrollTop stays at 0 (already set when dropdown was closed)
+		return {
+			destroy() {
+				unsubscribe()
+			},
 		}
-	})
+	}
 
 	const errorText = $derived.by(() => {
 		if (error) return error
@@ -276,7 +262,7 @@
 				class="select h-max min-h-10 w-full min-w-12 cursor-pointer !bg-none pr-1"
 				onclick={() => {
 					searchEL?.focus()
-					filter = ''
+					filterInput = ''
 				}}>
 				{#if multiple}
 					<!-- Multi-select display with chips -->
@@ -300,7 +286,7 @@
 							type="text"
 							class="h-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 							bind:this={searchEL}
-							bind:value={filter}
+							bind:value={filterInput}
 							onclick={() => {
 								detailsOpen = true
 							}}
@@ -313,7 +299,8 @@
 						type="text"
 						class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 						bind:this={searchEL}
-						bind:value={filter}
+						value={filter}
+						oninput={(e) => (filterInput = e.currentTarget.value)}
 						onclick={() => {
 							detailsOpen = true
 						}}
@@ -364,7 +351,7 @@
 				{/if}
 
 				{#if flatList.length > 0}
-					<div class="relative max-h-80 overflow-y-auto pr-2" bind:this={scrollContainer} onscroll={handleScroll}>
+					<div class="relative max-h-80 overflow-y-auto pr-2" use:scrollToSelected onscroll={handleScroll}>
 						<!-- Virtual spacer for items before visible range -->
 						{#if visibleItems.startIndex > 0}
 							<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
@@ -380,7 +367,9 @@
 								</li>
 							{:else}
 								{@const item = entry.item}
-								{@const isSelected = isItemSelected(item.value)}
+								{@const isSelected = multiple
+									? Array.isArray(normalizedValue) && normalizedValue.includes(item.value)
+									: item.value === normalizedValue}
 								<li style="height: {itemHeight}px;">
 									<button
 										class="flex h-full w-full items-center gap-2 {isSelected
