@@ -92,7 +92,6 @@
 			// Close dropdown and update filter immediately
 			filter = items.find((item) => item.value === itemValue)?.label || ''
 			detailsOpen = false
-			filterMode = 'auto'
 
 			// Wait for DOM update so details closes properly
 			await tick()
@@ -133,11 +132,10 @@
 	}
 
 	let filter = $state('')
-	let filterMode = $state<'user' | 'auto'>('user') // Track if filter is user-controlled or auto-synced
 
-	// Auto-sync filter for single select when not user-controlled
+	// Auto-sync filter for single select when dropdown is closed
 	$effect(() => {
-		if (!multiple && !detailsOpen && filterMode === 'auto') {
+		if (!multiple && !detailsOpen) {
 			if (selectedItem) {
 				filter = selectedItem.label
 			} else {
@@ -145,18 +143,6 @@
 			}
 		}
 	})
-
-	// Reset filter mode when user starts typing
-	function handleFilterInput() {
-		filterMode = 'user'
-	}
-
-	// Set filter mode to auto when closing dropdown
-	function handleDropdownClose() {
-		if (!multiple) {
-			filterMode = 'auto'
-		}
-	}
 
 	let filteredItems = $derived.by(() => {
 		if (filter.length === 0) return items
@@ -190,18 +176,7 @@
 		}
 		return result
 	})
-	// Display text for the input placeholder/value
-	// Using $state.eager to ensure immediate UI feedback when selection changes
-	let displayText = $derived.by(() => {
-		if (multiple) {
-			const count = selectedItems.length
-			if (count === 0) return placeholder
-			if (count === 1) return selectedItems[0].label
-			return `${count} items selected`
-		}
-		const item = selectedItem
-		return item ? item.label : placeholder
-	})
+
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
 
 	// Virtual list implementation
@@ -295,21 +270,13 @@
 			bind:open={detailsOpen}
 			use:clickOutside={() => {
 				if (!detailsOpen) return
-				if (!multiple) {
-					filter = selectedItem?.label ?? ''
-				} else {
-					filter = ''
-				}
-				console.log('clickOutside')
 				detailsOpen = false
-				handleDropdownClose()
 			}}>
 			<summary
 				class="select h-max min-h-10 w-full min-w-12 cursor-pointer !bg-none pr-1"
 				onclick={() => {
 					searchEL?.focus()
 					filter = ''
-					filterMode = 'user'
 				}}>
 				{#if multiple}
 					<!-- Multi-select display with chips -->
@@ -334,7 +301,6 @@
 							class="h-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 							bind:this={searchEL}
 							bind:value={filter}
-							oninput={handleFilterInput}
 							onclick={() => {
 								detailsOpen = true
 							}}
@@ -348,14 +314,12 @@
 						class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 						bind:this={searchEL}
 						bind:value={filter}
-						oninput={handleFilterInput}
 						onclick={() => {
 							detailsOpen = true
 						}}
-						placeholder={displayText}
+						{placeholder}
 						required={required && !normalizedValue} />
 				{/if}
-
 				{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
 					<button
 						type="button"

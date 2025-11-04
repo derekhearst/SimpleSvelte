@@ -49,6 +49,9 @@
 	// Auto-scroll test data
 	let autoScrollSingleValue = $state('item75') // Pre-select item that's far down the list
 	let autoScrollMultiValue = $state(['item25', 'item85', 'item105']) // Pre-select multiple items scattered throughout
+
+	// Default value test
+	let defaultValue = $state('react') // Pre-select React
 </script>
 
 <div class="container mx-auto max-w-2xl p-8">
@@ -61,6 +64,19 @@
 		<div class="bg-base-200 rounded-box mt-4 p-4">
 			<strong>Selected:</strong>
 			{smallValue || 'None selected'}
+		</div>
+	</div>
+
+	<div class="mb-8">
+		<h2 class="mb-4 text-2xl font-semibold">Select with Default Value</h2>
+		<p class="mb-4 text-sm text-gray-600">
+			This select has "React" pre-selected by default. Opening the dropdown should scroll the parent container if needed
+			to keep it in view.
+		</p>
+		<Select bind:value={defaultValue} {options} label="Framework (with default)" name="default-select" />
+		<div class="bg-base-200 rounded-box mt-4 p-4">
+			<strong>Selected:</strong>
+			{defaultValue || 'None selected'}
 		</div>
 	</div>
 
