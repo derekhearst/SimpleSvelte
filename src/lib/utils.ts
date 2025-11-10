@@ -104,14 +104,14 @@ export function clickOutside(element: HTMLElement, callbackFunction: () => void)
 		}
 	}
 
-	document.body.addEventListener('click', onClick)
+	document.documentElement.addEventListener('click', onClick)
 
 	return {
 		update(newCallbackFunction: () => void) {
 			callbackFunction = newCallbackFunction
 		},
 		destroy() {
-			document.body.removeEventListener('click', onClick)
+			document.documentElement.removeEventListener('click', onClick)
 		},
 	}
 }
