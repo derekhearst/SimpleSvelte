@@ -135,6 +135,7 @@
 		const result: FlatListItem[] = []
 		const groups: Record<string, Option[]> = {}
 		const ungrouped: Option[] = []
+		
 		for (const item of filteredItems) {
 			if (item.group) {
 				if (!groups[item.group]) groups[item.group] = []
@@ -143,17 +144,56 @@
 				ungrouped.push(item)
 			}
 		}
-		// Add ungrouped items first
-		for (const item of ungrouped) {
-			result.push({ type: 'option', item })
-		}
-		// Add grouped items with headers
-		for (const groupName of Object.keys(groups)) {
-			result.push({ type: 'header', group: groupName })
-			for (const item of groups[groupName]) {
+		
+		// In multiple mode, separate selected and unselected items
+		if (multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) {
+			const selectedUngrouped: Option[] = []
+			const unselectedUngrouped: Option[] = []
+			
+			for (const item of ungrouped) {
+				if (normalizedValue.includes(item.value)) {
+					selectedUngrouped.push(item)
+				} else {
+					unselectedUngrouped.push(item)
+				}
+			}
+			
+			// Add selected ungrouped items first
+			for (const item of selectedUngrouped) {
 				result.push({ type: 'option', item })
 			}
+			// Then unselected ungrouped items
+			for (const item of unselectedUngrouped) {
+				result.push({ type: 'option', item })
+			}
+			
+			// Add grouped items with headers, also with selected first within each group
+			for (const groupName of Object.keys(groups)) {
+				const groupItems = groups[groupName]
+				const selectedGroupItems = groupItems.filter(item => normalizedValue.includes(item.value))
+				const unselectedGroupItems = groupItems.filter(item => !normalizedValue.includes(item.value))
+				
+				result.push({ type: 'header', group: groupName })
+				for (const item of selectedGroupItems) {
+					result.push({ type: 'option', item })
+				}
+				for (const item of unselectedGroupItems) {
+					result.push({ type: 'option', item })
+				}
+			}
+		} else {
+			// Normal ordering when not in multiple mode or no selections
+			for (const item of ungrouped) {
+				result.push({ type: 'option', item })
+			}
+			for (const groupName of Object.keys(groups)) {
+				result.push({ type: 'header', group: groupName })
+				for (const item of groups[groupName]) {
+					result.push({ type: 'option', item })
+				}
+			}
 		}
+		
 		return result
 	})
 
@@ -259,32 +299,40 @@
 				detailsOpen = false
 			}}>
 			<summary
-				class="select h-max min-h-10 w-full min-w-12 cursor-pointer !bg-none pr-1"
+				class="select h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1"
 				onclick={() => {
 					searchEL?.focus()
 					filterInput = ''
 				}}>
 				{#if multiple}
-					<!-- Multi-select display with chips -->
+					<!-- Multi-select display with condensed chips -->
 					<div class="flex min-h-8 flex-wrap gap-1 p-1">
-						{#each selectedItems as item (item.value)}
-							<div class="badge !badge-primary gap-1">
-								<span class="truncate">{item.label}</span>
+						{#if selectedItems.length > 0}
+							<!-- Show first selected item -->
+							<div class="badge badge-neutral gap-1 bg-base-200 text-base-content">
+								<span class="truncate max-w-[200px]">{selectedItems[0].label}</span>
 								<button
 									type="button"
-									class="btn btn-xs btn-circle btn-ghost"
+									class="btn btn-xs btn-circle btn-ghost hover:bg-base-300"
 									onclick={(e) => {
 										e.stopPropagation()
-										removeSelectedItem(item.value)
+										removeSelectedItem(selectedItems[0].value)
 									}}>
 									✕
 								</button>
 							</div>
-						{/each}
+							
+							{#if selectedItems.length > 1}
+								<!-- Show count indicator for remaining items -->
+								<div class="badge badge-ghost text-base-content/70">
+									(+{selectedItems.length - 1} more)
+								</div>
+							{/if}
+						{/if}
 						<!-- Search input for filtering in multi-select -->
 						<input
 							type="text"
-							class="h-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
+							class="h-full outline-0 flex-1 min-w-[120px] {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
 							bind:this={searchEL}
 							bind:value={filterInput}
 							onclick={() => {
@@ -371,11 +419,11 @@
 									? Array.isArray(normalizedValue) && normalizedValue.includes(item.value)
 									: item.value === normalizedValue}
 								<li style="height: {itemHeight}px;">
-									<button
-										class="flex h-full w-full items-center gap-2 {isSelected
-											? ' bg-primary text-primary-content hover:!bg-primary/70'
-											: ''}"
-										type="button"
+										<button
+											class="flex h-full w-full items-center gap-2 {isSelected
+												? ' bg-primary text-primary-content hover:bg-primary/70!'
+												: ''}"
+											type="button"
 										onclick={() => {
 											toggleItemSelection(item.value)
 											searchEL?.focus()
@@ -383,7 +431,7 @@
 										{#if multiple}
 											<input
 												type="checkbox"
-												class="checkbox checkbox-sm !text-primary-content pointer-events-none"
+												class="checkbox checkbox-sm text-primary-content! pointer-events-none"
 												checked={isSelected}
 												readonly />
 										{/if}
