@@ -13,6 +13,16 @@
 	<!-- Input Component Tests -->
 	<section class="space-y-4">
 		<div class="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+			<h2 class="text-xl font-semibold">Number Input</h2>
+			<Input type="number" name="test-number-basic" label="Basic Number" />
+			<Input type="number" name="test-number-required" label="Required Number" required />
+			<Input type="number" name="test-number-minmax" label="Number (Min: 0, Max: 100)" min="0" max="100" />
+			<Input type="number" name="test-number-step" label="Number with Step (0.5)" step="0.01" />
+			<Input type="number" name="test-number-value" label="Number with Initial Value" value={42} />
+			<Input type="number" name="test-number-disabled" label="Disabled Number" value={99} disabled />
+		</div>
+
+		<div class="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
 			<h2 class="text-xl font-semibold">Date Input</h2>
 			<Input type="date" name="test" required label="Test required" />
 		</div>

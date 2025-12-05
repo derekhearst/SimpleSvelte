@@ -435,7 +435,7 @@
 												checked={isSelected}
 												readonly />
 										{/if}
-										<span class="flex-1 text-left">{item.label}</span>
+										<span class="flex-1 overflow-hidden text-left text-nowrap text-ellipsis">{item.label}</span>
 									</button>
 								</li>
 							{/if}
