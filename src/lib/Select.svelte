@@ -235,10 +235,15 @@
 	}
 
 	// Scroll to selected item when dropdown opens
+	let hasScrolledOnOpen = false
 	function scrollToSelected(node: HTMLDivElement) {
 		const unsubscribe = $effect.root(() => {
 			$effect(() => {
 				if (detailsOpen) {
+					// Only scroll on initial open, not on subsequent selection changes
+					if (hasScrolledOnOpen) return
+					hasScrolledOnOpen = true
+
 					// Find the index of the selected item in the flat list
 					let selectedIndex = -1
 
@@ -261,6 +266,9 @@
 						// Set scroll position directly on the DOM node
 						node.scrollTop = targetScrollTop
 					}
+				} else {
+					// Reset flag when dropdown closes
+					hasScrolledOnOpen = false
 				}
 			})
 		})
@@ -276,6 +284,16 @@
 		if (error) return error
 		if (!name) return undefined
 		if (zodErrors) return zodErrors.find((e) => e.path.includes(name))?.message
+		return undefined
+	})
+
+	// Tooltip showing all selected items
+	const tooltipText = $derived.by(() => {
+		if (multiple && selectedItems.length > 0) {
+			return selectedItems.map((item) => item.label).join(', ')
+		} else if (!multiple && selectedItem) {
+			return selectedItem.label
+		}
 		return undefined
 	})
 </script>
@@ -300,9 +318,11 @@
 			}}>
 			<summary
 				class="select h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1"
+				title={tooltipText}
 				onclick={() => {
 					searchEL?.focus()
-					filterInput = ''
+					// Only clear filter in single-select mode; in multi-select, keep filter for continued searching
+					if (!multiple) filterInput = ''
 				}}>
 				{#if multiple}
 					<!-- Multi-select display with condensed chips -->
@@ -424,7 +444,8 @@
 											? ' bg-primary text-primary-content hover:bg-primary/70!'
 											: ''}"
 										type="button"
-										onclick={() => {
+										onclick={(e) => {
+											e.stopPropagation()
 											toggleItemSelection(item.value)
 											searchEL?.focus()
 										}}>
