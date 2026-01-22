@@ -354,12 +354,25 @@
 
 	function openDropdown() {
 		if (!popoverEl) return
-		popoverEl.showPopover()
+		try {
+			if (!popoverEl.matches(':popover-open')) {
+				popoverEl.showPopover()
+			}
+		} catch {
+			// Ignore errors if popover is in an invalid state
+		}
 	}
 
 	function closeDropdown() {
 		if (!popoverEl) return
-		popoverEl.hidePopover()
+		try {
+			// Check if open before hiding
+			if (popoverEl.matches(':popover-open')) {
+				popoverEl.hidePopover()
+			}
+		} catch {
+			// Ignore errors if popover is in an invalid state
+		}
 	}
 
 	// Handle popover toggle event to sync state
@@ -444,10 +457,7 @@
 						class="h-full min-w-[120px] flex-1 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
 						bind:this={searchEL}
 						bind:value={filterInput}
-						onclick={(e) => {
-							e.stopPropagation()
-							openDropdown()
-						}}
+						onclick={() => openDropdown()}
 						placeholder="Search..."
 						required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
 				</div>
@@ -459,9 +469,7 @@
 					bind:this={searchEL}
 					value={filter}
 					oninput={(e) => (filterInput = e.currentTarget.value)}
-					onclick={(e) => {
-						e.stopPropagation()
-						// Clear filter when opening dropdown so all options are visible
+					onclick={() => {
 						filterInput = ''
 						openDropdown()
 					}}
@@ -497,7 +505,7 @@
 			popover
 			role="listbox"
 			class="dropdown menu bg-base-100 rounded-box z-50 mt-2 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0 {!dropdownOpen ? 'pointer-events-none' : ''}"
-			style="position-anchor: {anchorName}; position: absolute; top: anchor(bottom); left: anchor(left); width: anchor-size(width)"
+			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width)"
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
 					<!-- Select All / Clear All options for multi-select -->
