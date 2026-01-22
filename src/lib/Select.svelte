@@ -474,6 +474,7 @@
 					tabindex="0"
 					class="btn btn-sm btn-circle btn-ghost bg-base-100 absolute top-1 right-1"
 					onclick={(e) => {
+						e.preventDefault()
 						e.stopPropagation()
 						clearAll()
 					}}
@@ -562,7 +563,7 @@
 									onclick={(e) => {
 										e.stopPropagation()
 										toggleItemSelection(item.value)
-										searchEL?.focus()
+										if (multiple) searchEL?.focus()
 									}}>
 									{#if multiple}
 										<input
