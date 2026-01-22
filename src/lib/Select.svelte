@@ -495,46 +495,46 @@
 			id={popoverId}
 			popover
 			role="listbox"
-			class="dropdown menu bg-base-100 rounded-box z-50 mt-2 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0"
+			class="dropdown menu bg-base-100 rounded-box z-50 mt-2 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0 {!dropdownOpen ? 'pointer-events-none' : ''}"
 			style="position-anchor: {anchorName}; position: absolute; top: anchor(bottom); left: anchor(left); width: anchor-size(width)"
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
-				<!-- Select All / Clear All options for multi-select -->
-				<div class="flex gap-2">
-					<button
-						type="button"
-						class="btn btn-sm hover:bg-base-content/10 grow"
-						onclick={() => {
-							const allValues = filteredItems.map((item) => item.value)
-							value = [...allValues]
-							if (onchange) onchange(value)
-						}}>
-						Select All
-					</button>
-					<button
-						type="button"
-						class="btn btn-sm hover:bg-base-content/10 grow"
-						onclick={() => {
-							value = []
-							if (onchange) onchange(value)
-						}}>
-						Clear All
-					</button>
-				</div>
-			{/if}
-			{#if isLoading}
-				<li class="m-2 flex items-center justify-center gap-2 text-sm text-gray-500">
-					<span class="loading loading-spinner loading-sm"></span>
-					Loading...
-				</li>
-			{:else if fetchError}
-				<li class="m-2 text-center text-sm text-error">{fetchError}</li>
-			{:else if filteredItems.length === 0}
-				<li class="m-2 text-center text-sm text-gray-500">No items found</li>
-			{/if}
+					<!-- Select All / Clear All options for multi-select -->
+					<div class="flex gap-2">
+						<button
+							type="button"
+							class="btn btn-sm hover:bg-base-content/10 grow"
+							onclick={() => {
+								const allValues = filteredItems.map((item) => item.value)
+								value = [...allValues]
+								if (onchange) onchange(value)
+							}}>
+							Select All
+						</button>
+						<button
+							type="button"
+							class="btn btn-sm hover:bg-base-content/10 grow"
+							onclick={() => {
+								value = []
+								if (onchange) onchange(value)
+							}}>
+							Clear All
+						</button>
+					</div>
+				{/if}
+				{#if isLoading}
+					<li class="m-2 flex items-center justify-center gap-2 text-sm text-gray-500">
+						<span class="loading loading-spinner loading-sm"></span>
+						Loading...
+					</li>
+				{:else if fetchError}
+					<li class="m-2 text-center text-sm text-error">{fetchError}</li>
+				{:else if filteredItems.length === 0}
+					<li class="m-2 text-center text-sm text-gray-500">No items found</li>
+				{/if}
 
-			{#if flatList.length > 0}
-				<div class="relative max-h-80 overflow-y-auto pr-2" use:scrollToSelected onscroll={handleScroll}>
+				{#if flatList.length > 0}
+					<div class="relative max-h-80 overflow-y-auto pr-2" use:scrollToSelected onscroll={handleScroll}>
 					<!-- Virtual spacer for items before visible range -->
 					{#if visibleItems.startIndex > 0}
 						<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
