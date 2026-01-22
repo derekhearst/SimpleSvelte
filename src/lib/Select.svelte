@@ -1,17 +1,23 @@
-<script lang="ts">
-	import { clickOutside } from './utils.js'
-	import Input from './Input.svelte'
-	import Label from './Label.svelte'
-	type Option = {
+<script lang="ts" module>
+	export type SelectOption = {
 		value: any
 		label: any
 		group?: string
 		[key: string]: any // Allow additional properties
 	}
 
+	export type SelectFetchParams = { filter: string | undefined }
+</script>
+
+<script lang="ts">
+	import Input from './Input.svelte'
+	import Label from './Label.svelte'
+
 	type Props = {
 		value?: string | number | undefined | null | (string | number)[]
-		options: Option[]
+		options?: SelectOption[]
+		fetchOptions?: (params: SelectFetchParams) => Promise<SelectOption[]>
+		debounceMs?: number
 		name?: string
 		label?: string
 		class?: string
@@ -31,7 +37,9 @@
 
 	let {
 		value = $bindable(undefined),
-		options: items,
+		options: staticOptions = [],
+		fetchOptions,
+		debounceMs = 300,
 		name,
 		label,
 		class: className = '',
@@ -44,7 +52,50 @@
 		onchange,
 	}: Props = $props()
 
-	let detailsOpen = $state(false)
+	// Async fetch state
+	let asyncItems = $state<SelectOption[]>([])
+	let isLoading = $state(false)
+	let fetchError = $state<string | undefined>(undefined)
+	let debounceTimeout: ReturnType<typeof setTimeout> | undefined
+
+	// Use async items if fetchOptions is provided, otherwise use static options
+	let items = $derived(fetchOptions ? asyncItems : staticOptions)
+
+	// Fetch options when filter changes (debounced)
+	async function fetchWithFilter(filterValue: string | undefined) {
+		if (!fetchOptions) return
+
+		// Clear previous timeout
+		if (debounceTimeout) clearTimeout(debounceTimeout)
+
+		debounceTimeout = setTimeout(async () => {
+			isLoading = true
+			fetchError = undefined
+			try {
+				asyncItems = await fetchOptions({ filter: filterValue })
+			} catch (err) {
+				fetchError = err instanceof Error ? err.message : 'Failed to fetch options'
+				asyncItems = []
+			} finally {
+				isLoading = false
+			}
+		}, debounceMs)
+	}
+
+	// Trigger fetch when dropdown opens or filter input changes (if using async)
+	$effect(() => {
+		if (fetchOptions && dropdownOpen) {
+			// Track filterInput to re-run when it changes
+			const currentFilter = filterInput
+			fetchWithFilter(currentFilter || undefined)
+		}
+	})
+
+	let dropdownOpen = $state(false)
+
+	// Generate unique ID for popover
+	const popoverId = `select-popover-${Math.random().toString(36).slice(2, 9)}`
+	const anchorName = `--anchor-${popoverId}`
 
 	// Ensure value is properly typed for single/multiple mode
 	// Normalize on access rather than maintaining separate state
@@ -77,7 +128,7 @@
 		if (!multiple) {
 			// Close dropdown and update filter immediately
 			filterInput = items.find((item) => item.value === itemValue)?.label || ''
-			detailsOpen = false
+			closeDropdown()
 			value = itemValue
 			if (onchange) onchange(value)
 			return
@@ -107,7 +158,7 @@
 	function clearAll() {
 		value = multiple ? [] : null
 		filterInput = ''
-		detailsOpen = false
+		closeDropdown()
 		if (onchange) onchange(value)
 	}
 
@@ -117,7 +168,7 @@
 	// Display value in filter box for single-select when closed
 	let filter = $derived.by(() => {
 		// In single select mode when dropdown is closed, show selected item
-		if (!multiple && !detailsOpen && selectedItem) {
+		if (!multiple && !dropdownOpen && selectedItem) {
 			return selectedItem.label
 		}
 		// Otherwise use the user's filter input
@@ -125,16 +176,19 @@
 	})
 
 	let filteredItems = $derived.by(() => {
+		// When using async fetch, server handles filtering - return items as-is
+		if (fetchOptions) return items
+		// Client-side filtering for static options
 		if (filter.length === 0) return items
 		return items.filter((item) => item.label.toLowerCase().includes(filter.toLowerCase()))
 	})
 
 	// Flatten filteredItems into a list with group headers and options for virtual scroll
-	type FlatListItem = { type: 'header'; group: string } | { type: 'option'; item: Option }
+	type FlatListItem = { type: 'header'; group: string } | { type: 'option'; item: SelectOption }
 	let flatList = $derived.by(() => {
 		const result: FlatListItem[] = []
-		const groups: Record<string, Option[]> = {}
-		const ungrouped: Option[] = []
+		const groups: Record<string, SelectOption[]> = {}
+		const ungrouped: SelectOption[] = []
 
 		for (const item of filteredItems) {
 			if (item.group) {
@@ -147,8 +201,8 @@
 
 		// In multiple mode, separate selected and unselected items
 		if (multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) {
-			const selectedUngrouped: Option[] = []
-			const unselectedUngrouped: Option[] = []
+			const selectedUngrouped: SelectOption[] = []
+			const unselectedUngrouped: SelectOption[] = []
 
 			for (const item of ungrouped) {
 				if (normalizedValue.includes(item.value)) {
@@ -198,6 +252,7 @@
 	})
 
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
+	let popoverEl: HTMLElement | undefined = $state(undefined)
 
 	// Virtual list implementation
 	let scrollTop = $state(0)
@@ -239,7 +294,7 @@
 	function scrollToSelected(node: HTMLDivElement) {
 		const unsubscribe = $effect.root(() => {
 			$effect(() => {
-				if (detailsOpen) {
+				if (dropdownOpen) {
 					// Only scroll on initial open, not on subsequent selection changes
 					if (hasScrolledOnOpen) return
 					hasScrolledOnOpen = true
@@ -296,6 +351,26 @@
 		}
 		return undefined
 	})
+
+	function openDropdown() {
+		if (!popoverEl) return
+		popoverEl.showPopover()
+	}
+
+	function closeDropdown() {
+		if (!popoverEl) return
+		popoverEl.hidePopover()
+	}
+
+	// Handle popover toggle event to sync state
+	function handlePopoverToggle(e: ToggleEvent) {
+		dropdownOpen = e.newState === 'open'
+		if (dropdownOpen) {
+			searchEL?.focus()
+		} else {
+			hasScrolledOnOpen = false
+		}
+	}
 </script>
 
 <!-- Data inputs for form submission -->
@@ -309,167 +384,204 @@
 
 <Label {label} {name} optional={!required} class={className} error={errorText}>
 	{#if !disabled}
-		<details
-			class="dropdown w-full"
-			bind:open={detailsOpen}
-			use:clickOutside={() => {
-				if (!detailsOpen) return
-				detailsOpen = false
+		<!-- Trigger button with popover target and anchor positioning -->
+		<button
+			type="button"
+			popovertarget={popoverId}
+			role="combobox"
+			aria-expanded={dropdownOpen}
+			aria-haspopup="listbox"
+			aria-controls={popoverId}
+			class="select relative h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1 text-left"
+			style="anchor-name: {anchorName}"
+			title={tooltipText}
+			onclick={() => {
+				searchEL?.focus()
+				// Only clear filter in single-select mode; in multi-select, keep filter for continued searching
+				if (!multiple) filterInput = ''
+			}}
+			onkeydown={(e) => {
+				if (e.key === 'Escape') {
+					closeDropdown()
+				}
 			}}>
-			<summary
-				class="select h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1"
-				title={tooltipText}
-				onclick={() => {
-					searchEL?.focus()
-					// Only clear filter in single-select mode; in multi-select, keep filter for continued searching
-					if (!multiple) filterInput = ''
-				}}>
-				{#if multiple}
-					<!-- Multi-select display with condensed chips -->
-					<div class="flex min-h-8 flex-wrap gap-1 p-1">
-						{#if selectedItems.length > 0}
-							<!-- Show first selected item -->
-							<div class="badge badge-neutral bg-base-200 text-base-content gap-1">
-								<span class="max-w-[200px] truncate">{selectedItems[0].label}</span>
-								<button
-									type="button"
-									class="btn btn-xs btn-circle btn-ghost hover:bg-base-300"
-									onclick={(e) => {
+			{#if multiple}
+				<!-- Multi-select display with condensed chips -->
+				<div class="flex min-h-8 flex-wrap gap-1 p-1">
+					{#if selectedItems.length > 0}
+						<!-- Show first selected item -->
+						<div class="badge badge-neutral bg-base-200 text-base-content gap-1">
+							<span class="max-w-[200px] truncate">{selectedItems[0].label}</span>
+							<span
+								role="button"
+								tabindex="0"
+								class="btn btn-xs btn-circle btn-ghost hover:bg-base-300"
+								onclick={(e) => {
+									e.stopPropagation()
+									removeSelectedItem(selectedItems[0].value)
+								}}
+								onkeydown={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault()
 										e.stopPropagation()
 										removeSelectedItem(selectedItems[0].value)
-									}}>
-									✕
-								</button>
-							</div>
+									}
+								}}>
+								✕
+							</span>
+						</div>
 
-							{#if selectedItems.length > 1}
-								<!-- Show count indicator for remaining items -->
-								<div class="badge badge-ghost text-base-content/70">
-									(+{selectedItems.length - 1} more)
-								</div>
-							{/if}
+						{#if selectedItems.length > 1}
+							<!-- Show count indicator for remaining items -->
+							<div class="badge badge-ghost text-base-content/70">
+								(+{selectedItems.length - 1} more)
+							</div>
 						{/if}
-						<!-- Search input for filtering in multi-select -->
-						<input
-							type="text"
-							class="h-full min-w-[120px] flex-1 outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
-							bind:this={searchEL}
-							bind:value={filterInput}
-							onclick={() => {
-								detailsOpen = true
-							}}
-							placeholder="Search..."
-							required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
-					</div>
-				{:else}
-					<!-- Single-select display -->
+					{/if}
+					<!-- Search input for filtering in multi-select -->
 					<input
 						type="text"
-						class="h-full w-full outline-0 {detailsOpen ? 'cursor-text' : 'cursor-pointer'}"
+						class="h-full min-w-[120px] flex-1 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
 						bind:this={searchEL}
-						value={filter}
-						oninput={(e) => (filterInput = e.currentTarget.value)}
-						onclick={() => {
-							detailsOpen = true
-						}}
-						{placeholder}
-						required={required && !normalizedValue} />
-				{/if}
-				{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
-					<button
-						type="button"
-						class="btn btn-sm btn-circle btn-ghost absolute top-1 right-1"
+						bind:value={filterInput}
 						onclick={(e) => {
 							e.stopPropagation()
+							openDropdown()
+						}}
+						placeholder="Search..."
+						required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
+				</div>
+			{:else}
+				<!-- Single-select display -->
+				<input
+					type="text"
+					class="h-full w-full outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
+					bind:this={searchEL}
+					value={filter}
+					oninput={(e) => (filterInput = e.currentTarget.value)}
+					onclick={(e) => {
+						e.stopPropagation()
+						openDropdown()
+					}}
+					{placeholder}
+					required={required && !normalizedValue} />
+			{/if}
+			{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
+				<span
+					role="button"
+					tabindex="0"
+					class="btn btn-sm btn-circle btn-ghost bg-base-100 absolute top-1 right-1"
+					onclick={(e) => {
+						e.stopPropagation()
+						clearAll()
+					}}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault()
+							e.stopPropagation()
 							clearAll()
+						}
+					}}>
+					✕
+			</span>
+			{/if}
+		</button>
+
+		<!-- Dropdown content using popover API -->
+		<ul
+			bind:this={popoverEl}
+			id={popoverId}
+			popover
+			role="listbox"
+			class="dropdown menu bg-base-100 rounded-box z-50 mt-2 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0"
+			style="position-anchor: {anchorName}; position: absolute; top: anchor(bottom); left: anchor(left); width: anchor-size(width)"
+			ontoggle={handlePopoverToggle}>
+			{#if multiple && filteredItems.length > 1}
+				<!-- Select All / Clear All options for multi-select -->
+				<div class="flex gap-2">
+					<button
+						type="button"
+						class="btn btn-sm hover:bg-base-content/10 grow"
+						onclick={() => {
+							const allValues = filteredItems.map((item) => item.value)
+							value = [...allValues]
+							if (onchange) onchange(value)
 						}}>
-						✕
+						Select All
 					</button>
-				{/if}
-			</summary>
-			<ul
-				class="menu dropdown-content bg-base-100 rounded-box z-10 mt-2 flex w-full flex-col flex-nowrap gap-1 p-2 shadow outline">
-				{#if multiple && filteredItems.length > 1}
-					<!-- Select All / Clear All options for multi-select -->
+					<button
+						type="button"
+						class="btn btn-sm hover:bg-base-content/10 grow"
+						onclick={() => {
+							value = []
+							if (onchange) onchange(value)
+						}}>
+						Clear All
+					</button>
+				</div>
+			{/if}
+			{#if isLoading}
+				<li class="m-2 flex items-center justify-center gap-2 text-sm text-gray-500">
+					<span class="loading loading-spinner loading-sm"></span>
+					Loading...
+				</li>
+			{:else if fetchError}
+				<li class="m-2 text-center text-sm text-error">{fetchError}</li>
+			{:else if filteredItems.length === 0}
+				<li class="m-2 text-center text-sm text-gray-500">No items found</li>
+			{/if}
 
-					<div class="flex gap-2">
-						<button
-							type="button"
-							class="btn btn-sm hover:bg-base-content/10 grow"
-							onclick={() => {
-								const allValues = filteredItems.map((item) => item.value)
-								value = [...allValues]
-								if (onchange) onchange(value)
-							}}>
-							Select All
-						</button>
-						<button
-							type="button"
-							class="btn btn-sm hover:bg-base-content/10 grow"
-							onclick={() => {
-								value = []
-								if (onchange) onchange(value)
-							}}>
-							Clear All
-						</button>
-					</div>
-				{/if}
-				{#if filteredItems.length === 0}
-					<li class="m-2 text-center text-sm text-gray-500">No items found</li>
-				{/if}
+			{#if flatList.length > 0}
+				<div class="relative max-h-80 overflow-y-auto pr-2" use:scrollToSelected onscroll={handleScroll}>
+					<!-- Virtual spacer for items before visible range -->
+					{#if visibleItems.startIndex > 0}
+						<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
+					{/if}
 
-				{#if flatList.length > 0}
-					<div class="relative max-h-80 overflow-y-auto pr-2" use:scrollToSelected onscroll={handleScroll}>
-						<!-- Virtual spacer for items before visible range -->
-						{#if visibleItems.startIndex > 0}
-							<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
+					<!-- Render only visible items (headers and options) -->
+					{#each visibleItems.items as entry, idx (entry.type === 'header' ? 'header-' + entry.group + '-' + idx : 'option-' + entry.item.value + '-' + idx)}
+						{#if entry.type === 'header'}
+							<li
+								class="bg-base-200 top-0 z-10 flex items-center justify-center px-2 text-lg font-bold text-gray-700"
+								style="height: {itemHeight}px;">
+								{entry.group}
+							</li>
+						{:else}
+							{@const item = entry.item}
+							{@const isSelected = multiple
+								? Array.isArray(normalizedValue) && normalizedValue.includes(item.value)
+								: item.value === normalizedValue}
+							<li style="height: {itemHeight}px;" role="option" aria-selected={isSelected}>
+								<button
+									class="flex h-full w-full items-center gap-2 {isSelected
+										? ' bg-primary text-primary-content hover:bg-primary/70!'
+										: ''}"
+									type="button"
+									onclick={(e) => {
+										e.stopPropagation()
+										toggleItemSelection(item.value)
+										searchEL?.focus()
+									}}>
+									{#if multiple}
+										<input
+											type="checkbox"
+											class="checkbox checkbox-sm text-primary-content! pointer-events-none"
+											checked={isSelected}
+											readonly />
+									{/if}
+									<span class="flex-1 overflow-hidden text-left text-nowrap text-ellipsis">{item.label}</span>
+								</button>
+							</li>
 						{/if}
+					{/each}
 
-						<!-- Render only visible items (headers and options) -->
-						{#each visibleItems.items as entry, idx (entry.type === 'header' ? 'header-' + entry.group + '-' + idx : 'option-' + entry.item.value + '-' + idx)}
-							{#if entry.type === 'header'}
-								<li
-									class="bg-base-200 top-0 z-10 flex items-center justify-center px-2 text-lg font-bold text-gray-700"
-									style="height: {itemHeight}px;">
-									{entry.group}
-								</li>
-							{:else}
-								{@const item = entry.item}
-								{@const isSelected = multiple
-									? Array.isArray(normalizedValue) && normalizedValue.includes(item.value)
-									: item.value === normalizedValue}
-								<li style="height: {itemHeight}px;">
-									<button
-										class="flex h-full w-full items-center gap-2 {isSelected
-											? ' bg-primary text-primary-content hover:bg-primary/70!'
-											: ''}"
-										type="button"
-										onclick={(e) => {
-											e.stopPropagation()
-											toggleItemSelection(item.value)
-											searchEL?.focus()
-										}}>
-										{#if multiple}
-											<input
-												type="checkbox"
-												class="checkbox checkbox-sm text-primary-content! pointer-events-none"
-												checked={isSelected}
-												readonly />
-										{/if}
-										<span class="flex-1 overflow-hidden text-left text-nowrap text-ellipsis">{item.label}</span>
-									</button>
-								</li>
-							{/if}
-						{/each}
-
-						<!-- Virtual spacer for items after visible range -->
-						{#if visibleItems.endIndex < visibleItems.total}
-							<div style="height: {(visibleItems.total - visibleItems.endIndex) * itemHeight}px;"></div>
-						{/if}
-					</div>
-				{/if}
-			</ul>
-		</details>
+					<!-- Virtual spacer for items after visible range -->
+					{#if visibleItems.endIndex < visibleItems.total}
+						<div style="height: {(visibleItems.total - visibleItems.endIndex) * itemHeight}px;"></div>
+					{/if}
+				</div>
+			{/if}
+		</ul>
 	{:else}
 		<!-- Disabled state -->
 		{#if multiple}

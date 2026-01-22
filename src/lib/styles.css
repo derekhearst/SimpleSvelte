@@ -8,3 +8,8 @@ body {
 	height: 100%;
 	background-color: var(--color-base-200);
 }
+
+/* Ensure popover elements are hidden by default - use !important to override menu display:flex */
+[popover]:not(:popover-open) {
+	display: none !important;
+}
