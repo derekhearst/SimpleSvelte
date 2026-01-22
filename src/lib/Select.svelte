@@ -126,8 +126,8 @@
 	// Remove specific item from multi-select
 	function toggleItemSelection(itemValue: any) {
 		if (!multiple) {
-			// Close dropdown and update filter immediately
-			filterInput = items.find((item) => item.value === itemValue)?.label || ''
+			// Close dropdown and clear filter - the derived `filter` will show the label when closed
+			filterInput = ''
 			closeDropdown()
 			value = itemValue
 			if (onchange) onchange(value)
@@ -461,6 +461,8 @@
 					oninput={(e) => (filterInput = e.currentTarget.value)}
 					onclick={(e) => {
 						e.stopPropagation()
+						// Clear filter when opening dropdown so all options are visible
+						filterInput = ''
 						openDropdown()
 					}}
 					{placeholder}
