@@ -54,6 +54,13 @@
 	let multiValue = $state([])
 	let requiredValue: string | undefined = $state()
 	let optionalValue = $state([])
+
+	// Tab navigation test
+	let tabTestSingle = $state('svelte')
+	let tabTestMulti = $state(['react', 'vue'])
+
+	// Dropdown position test
+	let positionTestValue: string | undefined = $state()
 </script>
 
 <div class="container mx-auto max-w-4xl space-y-8 px-4 py-8">
@@ -228,4 +235,64 @@
 		</div>
 		<Select {options} bind:value={optionalValue} label="Optional Frameworks" name="optional-frameworks" multiple />
 	</section>
+
+	<!-- Tab Navigation Test -->
+	<section class="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+		<div>
+			<h2 class="text-xl font-semibold">Tab Navigation Test</h2>
+			<p class="text-sm text-gray-500">
+				Tab through this form - focus should move smoothly between inputs without getting stuck on clear buttons.
+			</p>
+		</div>
+		<form class="flex flex-col gap-4">
+			<input type="text" class="input input-bordered" placeholder="First input - start here and press Tab" />
+			<Select
+				bind:value={tabTestSingle}
+				{options}
+				label="Single Select (tab should pass through)"
+				name="tab-test-single" />
+			<Select
+				bind:value={tabTestMulti}
+				{options}
+				label="Multi Select (tab should pass through)"
+				name="tab-test-multi"
+				multiple />
+			<input type="text" class="input input-bordered" placeholder="Last input - Tab should reach here" />
+		</form>
+		<div class="rounded bg-gray-50 p-3 text-sm">
+			<strong>Test:</strong>
+			<span class="ml-2 text-gray-700">
+				Click the first input, then press Tab repeatedly. Focus should move: First Input → Single Select → Multi Select
+				→ Last Input without stopping on ✕ buttons.
+			</span>
+		</div>
+	</section>
+
+	<!-- Dropdown Position Test (Near Bottom) -->
+	<section class="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+		<div>
+			<h2 class="text-xl font-semibold">Dropdown Position Test</h2>
+			<p class="text-sm text-gray-500">
+				The dropdown should flip above the input when there's not enough space below. Scroll down so this select is near
+				the bottom of your screen, then open it.
+			</p>
+		</div>
+		<Select
+			bind:value={positionTestValue}
+			options={groupedOptionsLarge}
+			label="Open near bottom of viewport"
+			name="position-test" />
+		<div class="rounded bg-gray-50 p-3 text-sm">
+			<strong>Expected:</strong>
+			<span class="ml-2 text-gray-700">
+				When this select is near the bottom of the viewport, the dropdown should appear above the input instead of
+				covering it.
+			</span>
+		</div>
+	</section>
+
+	<!-- Spacer for testing near-bottom positioning -->
+	<div class="h-96 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+		<p class="text-gray-500">Scroll spacer - position the select above near viewport bottom to test flip behavior</p>
+	</div>
 </div>

@@ -405,6 +405,7 @@
 			aria-expanded={dropdownOpen}
 			aria-haspopup="listbox"
 			aria-controls={popoverId}
+			tabindex="-1"
 			class="select relative h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1 text-left"
 			style="anchor-name: {anchorName}"
 			title={tooltipText}
@@ -427,18 +428,11 @@
 							<span class="max-w-[200px] truncate">{selectedItems[0].label}</span>
 							<span
 								role="button"
-								tabindex="0"
+								tabindex="-1"
 								class="btn btn-xs btn-circle btn-ghost hover:bg-base-300"
 								onclick={(e) => {
 									e.stopPropagation()
 									removeSelectedItem(selectedItems[0].value)
-								}}
-								onkeydown={(e) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault()
-										e.stopPropagation()
-										removeSelectedItem(selectedItems[0].value)
-									}
 								}}>
 								✕
 							</span>
@@ -479,19 +473,12 @@
 			{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
 				<span
 					role="button"
-					tabindex="0"
+					tabindex="-1"
 					class="btn btn-sm btn-circle btn-ghost bg-base-100 absolute top-1 right-1"
 					onclick={(e) => {
 						e.preventDefault()
 						e.stopPropagation()
 						clearAll()
-					}}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault()
-							e.stopPropagation()
-							clearAll()
-						}
 					}}>
 					✕
 			</span>
@@ -504,8 +491,9 @@
 			id={popoverId}
 			popover
 			role="listbox"
-			class="dropdown menu bg-base-100 rounded-box z-50 mt-2 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0 {!dropdownOpen ? 'pointer-events-none' : ''}"
-			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width)"
+			inert={!dropdownOpen}
+			class="dropdown menu bg-base-100 rounded-box z-50 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0"
+			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width); margin-block: 0.5rem; position-try-fallbacks: flip-block;"
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
 					<!-- Select All / Clear All options for multi-select -->
