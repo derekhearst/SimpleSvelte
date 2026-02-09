@@ -253,6 +253,89 @@
 
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
 	let popoverEl: HTMLElement | undefined = $state(undefined)
+	let scrollContainerEl: HTMLDivElement | undefined = $state(undefined)
+
+	// Keyboard navigation
+	let highlightedIndex = $state(-1)
+
+	// Get only the option entries from flatList (skip headers)
+	let optionIndices = $derived.by(() => {
+		const indices: number[] = []
+		for (let i = 0; i < flatList.length; i++) {
+			if (flatList[i].type === 'option') indices.push(i)
+		}
+		return indices
+	})
+
+	// Reset highlight when filter changes or dropdown closes
+	$effect(() => {
+		// Track filterInput to reset highlight when user types
+		void filterInput
+		if (!dropdownOpen) {
+			highlightedIndex = -1
+		}
+	})
+
+	// Scroll the virtual list to keep highlighted item visible
+	function scrollToHighlighted(index: number) {
+		if (!scrollContainerEl || index < 0) return
+		const targetTop = index * itemHeight
+		const targetBottom = targetTop + itemHeight
+		const viewTop = scrollContainerEl.scrollTop
+		const viewBottom = viewTop + containerHeight
+
+		if (targetTop < viewTop) {
+			scrollContainerEl.scrollTop = targetTop
+		} else if (targetBottom > viewBottom) {
+			scrollContainerEl.scrollTop = targetBottom - containerHeight
+		}
+	}
+
+	// Keyboard handler for arrow navigation
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'ArrowDown') {
+			e.preventDefault()
+			if (!dropdownOpen) {
+				openDropdown()
+				return
+			}
+			// Move to next option
+			const currentPos = optionIndices.indexOf(highlightedIndex)
+			const nextPos = currentPos + 1
+			if (nextPos < optionIndices.length) {
+				highlightedIndex = optionIndices[nextPos]
+				scrollToHighlighted(highlightedIndex)
+			}
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault()
+			if (!dropdownOpen) {
+				openDropdown()
+				return
+			}
+			// Move to previous option
+			const currentPos = optionIndices.indexOf(highlightedIndex)
+			const prevPos = currentPos - 1
+			if (prevPos >= 0) {
+				highlightedIndex = optionIndices[prevPos]
+				scrollToHighlighted(highlightedIndex)
+			}
+		} else if (e.key === 'Enter') {
+			e.preventDefault()
+			if (!dropdownOpen) {
+				openDropdown()
+				return
+			}
+			if (highlightedIndex >= 0) {
+				const entry = flatList[highlightedIndex]
+				if (entry && entry.type === 'option') {
+					toggleItemSelection(entry.item.value)
+					if (multiple) searchEL?.focus()
+				}
+			}
+		} else if (e.key === 'Escape') {
+			closeDropdown()
+		}
+	}
 
 	// Virtual list implementation
 	let scrollTop = $state(0)
@@ -413,11 +496,6 @@
 				searchEL?.focus()
 				// Only clear filter in single-select mode; in multi-select, keep filter for continued searching
 				if (!multiple) filterInput = ''
-			}}
-			onkeydown={(e) => {
-				if (e.key === 'Escape') {
-					closeDropdown()
-				}
 			}}>
 			{#if multiple}
 				<!-- Multi-select display with condensed chips -->
@@ -425,7 +503,8 @@
 					{#if selectedItems.length > 0}
 						<!-- Show first selected item -->
 						<div class="badge badge-neutral bg-base-200 text-base-content gap-1">
-							<span class="max-w-[200px] truncate">{selectedItems[0].label}</span>
+							<span class="max-w-50 truncate">{selectedItems[0].label}</span>
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<span
 								role="button"
 								tabindex="-1"
@@ -447,11 +526,12 @@
 					{/if}
 					<!-- Search input for filtering in multi-select -->
 					<input
-						type="text"
-						class="h-full min-w-[120px] flex-1 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
-						bind:this={searchEL}
-						bind:value={filterInput}
-						onclick={() => openDropdown()}
+					type="text"
+					class="h-full min-w-30 flex-1 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
+					bind:this={searchEL}
+					bind:value={filterInput}
+					onclick={() => openDropdown()}
+					onkeydown={handleKeydown}
 						placeholder="Search..."
 						required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
 				</div>
@@ -467,10 +547,12 @@
 						filterInput = ''
 						openDropdown()
 					}}
+					onkeydown={handleKeydown}
 					{placeholder}
 					required={required && !normalizedValue} />
 			{/if}
 			{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<span
 					role="button"
 					tabindex="-1"
@@ -481,7 +563,7 @@
 						clearAll()
 					}}>
 					✕
-			</span>
+				</span>
 			{/if}
 		</button>
 
@@ -531,7 +613,7 @@
 				{/if}
 
 				{#if flatList.length > 0}
-					<div class="relative max-h-80 overflow-y-auto pr-2" use:scrollToSelected onscroll={handleScroll}>
+					<div class="relative max-h-80 overflow-y-auto pr-2" bind:this={scrollContainerEl} use:scrollToSelected onscroll={handleScroll}>
 					<!-- Virtual spacer for items before visible range -->
 					{#if visibleItems.startIndex > 0}
 						<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
@@ -547,14 +629,16 @@
 							</li>
 						{:else}
 							{@const item = entry.item}
+							{@const flatIdx = visibleItems.startIndex + idx}
 							{@const isSelected = multiple
 								? Array.isArray(normalizedValue) && normalizedValue.includes(item.value)
 								: item.value === normalizedValue}
+							{@const isHighlighted = flatIdx === highlightedIndex}
 							<li style="height: {itemHeight}px;" role="option" aria-selected={isSelected}>
 								<button
 									class="flex h-full w-full items-center gap-2 {isSelected
 										? ' bg-primary text-primary-content hover:bg-primary/70!'
-										: ''}"
+										: ''} {isHighlighted && !isSelected ? 'bg-base-200' : ''}"
 									type="button"
 									onclick={(e) => {
 										e.stopPropagation()
@@ -564,6 +648,7 @@
 									{#if multiple}
 										<input
 											type="checkbox"
+											tabindex="-1"
 											class="checkbox checkbox-sm text-primary-content! pointer-events-none"
 											checked={isSelected}
 											readonly />

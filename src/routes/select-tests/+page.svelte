@@ -61,6 +61,10 @@
 
 	// Dropdown position test
 	let positionTestValue: string | undefined = $state()
+
+	// Keyboard navigation test
+	let keyboardSingleValue: string | undefined = $state()
+	let keyboardMultiValue = $state([])
 </script>
 
 <div class="container mx-auto max-w-4xl space-y-8 px-4 py-8">
@@ -288,6 +292,51 @@
 				When this select is near the bottom of the viewport, the dropdown should appear above the input instead of
 				covering it.
 			</span>
+		</div>
+	</section>
+
+	<!-- Keyboard Navigation Test -->
+	<section class="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+		<div>
+			<h2 class="text-xl font-semibold">Keyboard Navigation Test</h2>
+			<p class="text-sm text-gray-500">
+				Focus the select, then use Arrow Down/Up to highlight items and Enter to select.
+			</p>
+		</div>
+		<Select
+			bind:value={keyboardSingleValue}
+			{options}
+			label="Single Select - use arrow keys"
+			name="keyboard-single" />
+		<div class="rounded bg-gray-50 p-3 text-sm">
+			<strong>Selected:</strong>
+			<span class="ml-2 text-gray-700">{keyboardSingleValue || 'None selected'}</span>
+		</div>
+		<Select
+			bind:value={keyboardMultiValue}
+			options={groupedOptionsSmall}
+			label="Multi Select - use arrow keys + Enter to toggle"
+			name="keyboard-multi"
+			multiple />
+		<div class="rounded bg-gray-50 p-3 text-sm">
+			<strong>Selected:</strong>
+			<span class="ml-2 text-gray-700">
+				{#if Array.isArray(keyboardMultiValue) && keyboardMultiValue.length > 0}
+					{keyboardMultiValue.join(', ')}
+				{:else}
+					None selected
+				{/if}
+			</span>
+		</div>
+		<div class="rounded bg-blue-50 p-3 text-sm">
+			<strong>Instructions:</strong>
+			<ul class="ml-4 mt-1 list-disc text-gray-700">
+				<li>Tab into the select input</li>
+				<li>Press Arrow Down/Up to open dropdown and navigate</li>
+				<li>Press Enter to select/toggle the highlighted item</li>
+				<li>Press Escape to close</li>
+				<li>Highlighted item should have a subtle background</li>
+			</ul>
 		</div>
 	</section>
 
