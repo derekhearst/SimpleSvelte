@@ -295,30 +295,26 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'ArrowDown') {
 			e.preventDefault()
-			if (!dropdownOpen) {
-				openDropdown()
-				return
-			}
-			// Move to next option
+			if (!dropdownOpen) openDropdown()
+			// Move to next option (or first option if none highlighted)
 			const currentPos = optionIndices.indexOf(highlightedIndex)
 			const nextPos = currentPos + 1
 			if (nextPos < optionIndices.length) {
 				highlightedIndex = optionIndices[nextPos]
 				scrollToHighlighted(highlightedIndex)
 			}
+			searchEL?.focus()
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault()
-			if (!dropdownOpen) {
-				openDropdown()
-				return
-			}
-			// Move to previous option
+			if (!dropdownOpen) openDropdown()
+			// Move to previous option (or last option if none highlighted)
 			const currentPos = optionIndices.indexOf(highlightedIndex)
-			const prevPos = currentPos - 1
+			const prevPos = currentPos >= 0 ? currentPos - 1 : optionIndices.length - 1
 			if (prevPos >= 0) {
 				highlightedIndex = optionIndices[prevPos]
 				scrollToHighlighted(highlightedIndex)
 			}
+			searchEL?.focus()
 		} else if (e.key === 'Enter') {
 			e.preventDefault()
 			if (!dropdownOpen) {
@@ -333,6 +329,9 @@
 				}
 			}
 		} else if (e.key === 'Escape') {
+			closeDropdown()
+		} else if (e.key === 'Tab') {
+			// Close dropdown on tab to allow normal tab navigation
 			closeDropdown()
 		}
 	}
