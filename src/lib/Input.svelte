@@ -112,10 +112,6 @@
 	})
 </script>
 
-{#if type != 'file'}
-	<input type="hidden" {name} value={value ?? ''} />
-{/if}
-
 <Label class={myClass} {label} {name} optional={showOptional} {disabled} error={errorText}>
 	{#if type == 'checkbox'}
 		<input bind:this={element} type="checkbox" {disabled} class={inputClass} {...rest} bind:checked={value} />
