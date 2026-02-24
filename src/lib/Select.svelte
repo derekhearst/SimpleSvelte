@@ -516,12 +516,12 @@
 					{/if}
 					<!-- Search input for filtering in multi-select -->
 					<input
-					type="text"
-					class="h-full min-w-30 flex-1 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
-					bind:this={searchEL}
-					bind:value={filterInput}
-					onclick={() => openDropdown()}
-					onkeydown={handleKeydown}
+						type="text"
+						class="h-full min-w-30 flex-1 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
+						bind:this={searchEL}
+						bind:value={filterInput}
+						onclick={() => openDropdown()}
+						onkeydown={handleKeydown}
 						placeholder="Search..."
 						required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
 				</div>
@@ -564,46 +564,50 @@
 			popover
 			role="listbox"
 			inert={!dropdownOpen}
-			class="dropdown menu bg-base-100 rounded-box z-50 flex flex-col flex-nowrap gap-1 p-2 shadow outline m-0"
+			class="dropdown menu bg-base-100 rounded-box z-50 m-0 flex flex-col flex-nowrap gap-1 p-2 shadow outline"
 			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width); margin-block: 0.5rem; position-try-fallbacks: flip-block;"
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
-					<!-- Select All / Clear All options for multi-select -->
-					<div class="flex gap-2">
-						<button
-							type="button"
-							class="btn btn-sm hover:bg-base-content/10 grow"
-							onclick={() => {
-								const allValues = filteredItems.map((item) => item.value)
-								value = [...allValues]
-								if (onchange) onchange(value)
-							}}>
-							Select All
-						</button>
-						<button
-							type="button"
-							class="btn btn-sm hover:bg-base-content/10 grow"
-							onclick={() => {
-								value = []
-								if (onchange) onchange(value)
-							}}>
-							Clear All
-						</button>
-					</div>
-				{/if}
-				{#if isLoading}
-					<li class="m-2 flex items-center justify-center gap-2 text-sm text-gray-500">
-						<span class="loading loading-spinner loading-sm"></span>
-						Loading...
-					</li>
-				{:else if fetchError}
-					<li class="m-2 text-center text-sm text-error">{fetchError}</li>
-				{:else if filteredItems.length === 0}
-					<li class="m-2 text-center text-sm text-gray-500">No items found</li>
-				{/if}
+				<!-- Select All / Clear All options for multi-select -->
+				<div class="flex gap-2">
+					<button
+						type="button"
+						class="btn btn-sm hover:bg-base-content/10 grow"
+						onclick={() => {
+							const allValues = filteredItems.map((item) => item.value)
+							value = [...allValues]
+							if (onchange) onchange(value)
+						}}>
+						Select All
+					</button>
+					<button
+						type="button"
+						class="btn btn-sm hover:bg-base-content/10 grow"
+						onclick={() => {
+							value = []
+							if (onchange) onchange(value)
+						}}>
+						Clear All
+					</button>
+				</div>
+			{/if}
+			{#if isLoading}
+				<li class="m-2 flex items-center justify-center gap-2 text-sm text-gray-500">
+					<span class="loading loading-spinner loading-sm"></span>
+					Loading...
+				</li>
+			{:else if fetchError}
+				<li class="text-error m-2 text-center text-sm">{fetchError}</li>
+			{:else if filteredItems.length === 0}
+				<li class="m-2 text-center text-sm text-gray-500">No items found</li>
+			{/if}
 
-				{#if flatList.length > 0}
-					<div class="relative max-h-80 overflow-y-auto pr-2" bind:this={scrollContainerEl} use:scrollToSelected onscroll={handleScroll}>
+			{#if flatList.length > 0}
+				<div
+					class="relative max-h-80 overflow-y-auto pr-2"
+					bind:this={scrollContainerEl}
+					use:scrollToSelected
+					onscroll={handleScroll}>
 					<!-- Virtual spacer for items before visible range -->
 					{#if visibleItems.startIndex > 0}
 						<div style="height: {visibleItems.startIndex * itemHeight}px;"></div>
