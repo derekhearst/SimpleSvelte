@@ -23,6 +23,7 @@
 			| 'file'
 			| 'checkbox'
 		error?: string
+		hideOptional?: boolean
 		zodErrors?: {
 			expected: string
 			code: string
@@ -41,6 +42,7 @@
 		disabled,
 		class: myClass,
 		error,
+		hideOptional,
 		zodErrors,
 		...rest
 	}: Props = $props()
@@ -101,6 +103,7 @@
 	})
 
 	let showOptional = $derived.by(() => {
+		if (hideOptional) return false
 		return !required && !disabled && type != 'checkbox'
 	})
 

@@ -10,6 +10,7 @@
 		disabled?: boolean
 		element?: HTMLElement
 		error?: string
+		hideOptional?: boolean
 		zodErrors?: {
 			expected: string
 			code: string
@@ -27,6 +28,7 @@
 		disabled,
 		class: myClass,
 		error,
+		hideOptional,
 		zodErrors,
 		...rest
 	}: Props = $props()
@@ -38,6 +40,6 @@
 	})
 </script>
 
-<Label class={myClass} {label} {name} optional={!required} {disabled} error={errorText}>
+<Label class={myClass} {label} {name} optional={!required && !hideOptional} {disabled} error={errorText}>
 	<textarea bind:this={element} {disabled} {name} {required} class="textarea w-full" {...rest} bind:value></textarea>
 </Label>

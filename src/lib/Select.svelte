@@ -26,6 +26,7 @@
 		disabled?: boolean
 		multiple?: boolean
 		error?: string
+		hideOptional?: boolean
 		zodErrors?: {
 			expected: string
 			code: string
@@ -48,6 +49,7 @@
 		multiple = false,
 		placeholder = 'Select an item...',
 		error,
+		hideOptional,
 		zodErrors,
 		onchange,
 	}: Props = $props()
@@ -468,7 +470,7 @@
 	}
 </script>
 
-<Label {label} {name} optional={!required} class={className} error={errorText}>
+<Label {label} {name} optional={!required && !hideOptional} class={className} error={errorText}>
 	{#if !disabled}
 		<!-- Trigger button with popover target and anchor positioning -->
 		<button
