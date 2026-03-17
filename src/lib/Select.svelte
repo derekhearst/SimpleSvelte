@@ -470,6 +470,15 @@
 	}
 </script>
 
+<!-- Data inputs for form submission -->
+{#if multiple && Array.isArray(normalizedValue)}
+	{#each normalizedValue as val, i (val + '-' + i)}
+		<input type="hidden" {name} value={val} />
+	{/each}
+{:else if !multiple && normalizedValue !== undefined && normalizedValue !== null && normalizedValue !== ''}
+	<input type="hidden" {name} value={normalizedValue} />
+{/if}
+
 <Label {label} {name} optional={!required && !hideOptional} class={className} error={errorText}>
 	{#if !disabled}
 		<!-- Trigger button with popover target and anchor positioning -->
