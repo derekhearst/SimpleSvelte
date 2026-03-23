@@ -12,6 +12,7 @@ export {
 	// Main functions
 	createAGGridQuery,
 	createAGGridDatasource,
+	createSSRMOptions,
 	// Parameter persistence functions
 	saveParams,
 	fetchParams,

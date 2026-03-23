@@ -14,15 +14,25 @@
 
 	type Props = {
 		gridEl?: HTMLDivElement
+		/** Bindable reference to the AG Grid API. Use `bind:gridApi` on the parent. */
+		gridApi?: GridApi
 		gridData?: any[] // Replace with your actual data type
 		gridOptions: GridOptions
+		/**
+		 * localStorage key for automatic grid state persistence (filters, sorts, column widths).
+		 * When set, state is saved on every change and restored on mount.
+		 */
+		stateKey?: string
 		class?: string
 	}
-	let { gridEl = $bindable(), gridData, gridOptions, class: gridClass = 'grow' }: Props = $props()
-
-	// Register modules once
-
-	let gridApi: GridApi | undefined
+	let {
+		gridEl = $bindable(),
+		gridApi = $bindable(),
+		gridData,
+		gridOptions,
+		stateKey,
+		class: gridClass = 'grow',
+	}: Props = $props()
 	let initCheckInterval: ReturnType<typeof setInterval> | undefined
 	let attemptCount = 0
 
@@ -49,10 +59,39 @@
 			console.warn('⚠️ Grid: No license key found. Running in trial mode.')
 		}
 
+		// Wrap onGridReady to expose the gridApi bindable and handle stateKey persistence,
+		// while still calling the user's own onGridReady callback if provided.
+		const userOnGridReady = gridOptions.onGridReady
+
+		// Load saved state upfront — must be in gridConfig.initialState, not applied post-init.
+		let savedState: object | undefined
+		if (stateKey) {
+			try {
+				const raw = localStorage.getItem(stateKey)
+				if (raw) savedState = JSON.parse(raw)
+			} catch {
+				/* ignore parse errors */
+			}
+		}
+
 		const gridConfig = {
 			...gridOptions,
 			theme: themeQuartz,
 			...(gridData !== undefined && { rowData: gridData }),
+			...(savedState !== undefined && { initialState: savedState }),
+			onGridReady: (params: Parameters<NonNullable<GridOptions['onGridReady']>>[0]) => {
+				userOnGridReady?.(params)
+				gridApi = params.api
+				if (stateKey) {
+					params.api.addEventListener('stateUpdated', (e: any) => {
+						try {
+							localStorage.setItem(stateKey, JSON.stringify(e.state))
+						} catch {
+							/* ignore storage errors */
+						}
+					})
+				}
+			},
 		}
 
 		console.log('🎨 Grid: Creating grid instance...')

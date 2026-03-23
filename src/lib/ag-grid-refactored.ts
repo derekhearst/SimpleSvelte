@@ -442,6 +442,32 @@ export type AGGridQueryConfig<TRecord = any> = {
 	 * ```
 	 */
 	disableCaseInsensitive?: boolean
+	/**
+	 * Optional: Explicit field type declarations for correct filter coercion.
+	 *
+	 * Fixes cases where AG Grid sends numeric FK values or booleans as strings inside
+	 * set/text filters, which Prisma then rejects or silently mismatches.
+	 *
+	 * Keys are column IDs exactly as used in AG Grid column definitions (dot-notation supported).
+	 *
+	 * Supported types:
+	 * - `'number'` — coerces set-filter values via `Number()` and text-filter equals to `{ equals: Number(v) }`
+	 * - `'boolean'` — forces the boolean path in set filters regardless of value shape
+	 * - `'string'` — no-op (default behaviour, useful for explicit documentation)
+	 *
+	 * @example Eliminate numeric-FK transformWhere workarounds
+	 * ```typescript
+	 * // Before:
+	 * transformWhere: (where) => {
+	 *   if (where.locationId?.in) where.locationId = { in: where.locationId.in.map(Number) }
+	 *   return where
+	 * }
+	 *
+	 * // After:
+	 * fieldTypes: { locationId: 'number', clientId: 'number', isActive: 'boolean' }
+	 * ```
+	 */
+	fieldTypes?: Record<string, 'number' | 'boolean' | 'string'>
 }
 
 // ============================================================================
@@ -654,9 +680,30 @@ function applyTextFilter(
 	field: string,
 	filter: Record<string, unknown>,
 	disableCaseInsensitive?: boolean,
+	fieldType?: 'number' | 'boolean' | 'string',
 ): void {
 	const type = filter.type as string
 	const value = filter.filter
+
+	// When the field is declared as a number, coerce all text-filter values to numbers.
+	// Text filters don't make semantic sense on numeric fields; treat as equality.
+	if (fieldType === 'number') {
+		switch (type) {
+			case 'blank':
+			case 'empty':
+				where[field] = null
+				return
+			case 'notBlank':
+				where[field] = { not: null }
+				return
+			case 'notEqual':
+				where[field] = { not: Number(value) }
+				return
+			default:
+				where[field] = { equals: Number(value) }
+				return
+		}
+	}
 
 	switch (type) {
 		case 'equals':
@@ -808,7 +855,12 @@ function applyDateFilter(where: Record<string, any>, field: string, filter: Reco
 /**
  * Handles set filters (multi-select)
  */
-function applySetFilter(where: Record<string, any>, field: string, filter: Record<string, unknown>): void {
+function applySetFilter(
+	where: Record<string, any>,
+	field: string,
+	filter: Record<string, unknown>,
+	fieldType?: 'number' | 'boolean' | 'string',
+): void {
 	const values = filter.values as unknown[]
 
 	// If values array doesn't exist, skip this filter entirely (no filter applied)
@@ -820,9 +872,22 @@ function applySetFilter(where: Record<string, any>, field: string, filter: Recor
 		return
 	}
 
-	// Check if this is a boolean filter
+	// When fieldType is 'number', coerce all values to numbers before the `in` query.
+	// AG Grid sends numeric FK values as strings inside set filters.
+	if (fieldType === 'number') {
+		const converted = values.map(Number)
+		if (converted.length === 1) {
+			where[field] = converted[0]
+		} else {
+			where[field] = { in: converted }
+		}
+		return
+	}
+
+	// Check if this is a boolean filter.
+	// fieldType === 'boolean' forces the boolean path regardless of value shape.
 	const booleanValues = new Set(['Yes', 'No', 'true', 'false', true, false])
-	const isBooleanFilter = values.every((v) => booleanValues.has(v as any))
+	const isBooleanFilter = fieldType === 'boolean' || values.every((v) => booleanValues.has(v as any))
 
 	if (isBooleanFilter) {
 		// Convert to boolean
@@ -849,6 +914,7 @@ function applyFilterToField(
 	field: string,
 	filterValue: unknown,
 	disableCaseInsensitive?: boolean,
+	fieldType?: 'number' | 'boolean' | 'string',
 ): void {
 	if (!filterValue || typeof filterValue !== 'object') return
 
@@ -859,7 +925,7 @@ function applyFilterToField(
 
 	switch (filterType) {
 		case 'text':
-			applyTextFilter(where, field, filter, disableCaseInsensitive)
+			applyTextFilter(where, field, filter, disableCaseInsensitive, fieldType)
 			break
 		case 'number':
 			applyNumberFilter(where, field, filter)
@@ -868,7 +934,7 @@ function applyFilterToField(
 			applyDateFilter(where, field, filter)
 			break
 		case 'set':
-			applySetFilter(where, field, filter)
+			applySetFilter(where, field, filter, fieldType)
 			break
 		default:
 			console.warn('Unknown filter type:', filterType, 'for field:', field, 'filter:', filter)
@@ -997,7 +1063,7 @@ function buildWhereClause(
 				const transformed = computedField.transform(extractedValue)
 				mergeWhereConditions(where, transformed)
 			} else {
-				applyFilterToField(where, columnId, filterValue, config.disableCaseInsensitive)
+				applyFilterToField(where, columnId, filterValue, config.disableCaseInsensitive, config.fieldTypes?.[columnId])
 			}
 		}
 	}
@@ -1560,3 +1626,64 @@ export const filterConfigs = {
 		},
 	},
 } as const
+
+// ============================================================================
+// Composite Grid Options Helper
+// ============================================================================
+
+/**
+ * Creates merged GridOptions for a server-side row model grid.
+ *
+ * Combines `defaultSSRMGridOptions` + `defaultSSRMColDef` + datasource creation into one call.
+ * User overrides are merged on top of defaults; `defaultColDef` is deep-merged so individual
+ * column definition properties can be overridden without replacing the entire object.
+ *
+ * @param fetcher - Remote query function (or custom wrapper function for additional filters)
+ * @param overrides - GridOptions merged on top of defaults (columnDefs, callbacks, etc.)
+ * @param datasourceOptions - Optional options forwarded to `createAGGridDatasource` (onError, debug, etc.)
+ * @returns Merged GridOptions ready to pass to `<Grid {gridOptions} />`
+ *
+ * @example Basic usage
+ * ```svelte
+ * <script lang="ts">
+ *   import { createSSRMOptions, Grid } from 'simplesvelte'
+ *   import { getUsersGrid } from './user.remote'
+ *   import type { GridApi } from 'ag-grid-enterprise'
+ *
+ *   let gridApi = $state<GridApi>()
+ *
+ *   const gridOptions = $derived(createSSRMOptions(getUsersGrid, {
+ *     columnDefs: [
+ *       { field: 'id' },
+ *       { field: 'name', filter: 'agTextColumnFilter' },
+ *       { field: 'department.name', headerName: 'Department', filter: 'agTextColumnFilter' },
+ *     ],
+ *     onRowClicked: (e) => { if (!e.node.group) console.log(e.data) },
+ *   }))
+ * </script>
+ *
+ * <Grid {gridOptions} bind:gridApi stateKey="users-grid" />
+ * ```
+ *
+ * @example With a custom fetcher wrapper (additional filters)
+ * ```svelte
+ * <script lang="ts">
+ *   let workOrderId = $props()
+ *   const fetcher = (req: any) => getNotesByWorkOrderIdGrid({ ...req, workOrderId })
+ *   const gridOptions = $derived(createSSRMOptions(fetcher, { columnDefs: [...] }))
+ * </script>
+ * ```
+ */
+export function createSSRMOptions(
+	fetcher: Parameters<typeof createAGGridDatasource>[0],
+	overrides?: import('ag-grid-community').GridOptions,
+	datasourceOptions?: Parameters<typeof createAGGridDatasource>[1],
+): import('ag-grid-community').GridOptions {
+	const { defaultColDef: overrideColDef, ...restOverrides } = overrides ?? {}
+	return {
+		serverSideDatasource: createAGGridDatasource(fetcher, datasourceOptions),
+		...defaultSSRMGridOptions,
+		defaultColDef: { ...defaultSSRMColDef, ...overrideColDef },
+		...restOverrides,
+	}
+}
