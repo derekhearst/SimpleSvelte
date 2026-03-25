@@ -27,6 +27,7 @@
 		multiple?: boolean
 		error?: string
 		hideOptional?: boolean
+		dropdownMinWidth?: string
 		zodErrors?: {
 			expected: string
 			code: string
@@ -50,6 +51,7 @@
 		placeholder = 'Select an item...',
 		error,
 		hideOptional,
+		dropdownMinWidth,
 		zodErrors,
 		onchange,
 	}: Props = $props()
@@ -576,7 +578,7 @@
 			role="listbox"
 			inert={!dropdownOpen}
 			class="dropdown menu bg-base-100 rounded-box z-50 m-0 flex flex-col flex-nowrap gap-1 p-2 shadow outline"
-			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width); margin-block: 0.5rem; position-try-fallbacks: flip-block;"
+			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width);{dropdownMinWidth ? ` min-width: ${dropdownMinWidth};` : ''} margin-block: 0.5rem; position-try-fallbacks: flip-block;"
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
 				<!-- Select All / Clear All options for multi-select -->
