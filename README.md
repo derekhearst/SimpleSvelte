@@ -149,7 +149,7 @@ Pop.toast('Updated!', 'success', 'top-end')
 			optionalPhone: fh.nString("phone")
 		}
 
-		
+
 	}
 </script>
 
@@ -200,10 +200,23 @@ The `src/lib` directory contains all library components, while `src/routes` prov
 To build your library:
 
 ```bash
-bun run package
+bun run build
 ```
 
 This will generate the distribution files in the `dist` directory.
+
+## Publishing
+
+Publishing is automated through [.github/workflows/bun-publish.yml](.github/workflows/bun-publish.yml):
+
+1. Create a GitHub release with a tag like `v2.5.2`
+2. The workflow updates `package.json` to the release tag version
+3. The workflow runs type checks and build packaging
+4. The workflow publishes to npm
+
+Required repository secret:
+
+- `NPM_TOKEN` with publish access for the `simplesvelte` package
 
 ## License
 

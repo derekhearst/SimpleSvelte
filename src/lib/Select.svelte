@@ -487,6 +487,7 @@
 		<button
 			type="button"
 			popovertarget={popoverId}
+			popovertargetaction="show"
 			role="combobox"
 			aria-expanded={dropdownOpen}
 			aria-haspopup="listbox"

@@ -1,33 +1,53 @@
-# This workflow will run tests using bun and then publish a package to npm using trusted publishers (OIDC)
-# For more information see: https://docs.npmjs.com/trusted-publishers
+# This workflow builds and publishes SimpleSvelte to npm when a release is created.
 
-name: Bun Package
+name: SimpleSvelte Publish
 
 on:
   release:
     types: [created]
 
-permissions:
-  id-token: write # Required for OIDC trusted publishing
-  contents: read
-
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - run: bun install
-
   publish-npm:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
-      - run: bun publish
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Set version from release tag
+        run: |
+          bun -e "const fs=require('fs'); const version=(process.env.VERSION||'').replace(/^v/, ''); if(!version){throw new Error('Missing release tag version')} const p='package.json'; const pkg=JSON.parse(fs.readFileSync(p,'utf8')); pkg.version=version; fs.writeFileSync(p, JSON.stringify(pkg, null, '\t') + '\n'); console.log('Set package.json version to', version);"
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump package version to ${VERSION#v}" || echo "No changes to commit"
+          git push origin HEAD:${{ github.event.release.target_commitish }}
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Type check package
+        run: bun run check
+
+      - name: Build package
+        run: bun run build
+
+      - name: Publish to npm
+        run: bun publish --access public
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
