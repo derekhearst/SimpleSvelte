@@ -28,6 +28,7 @@
 		error?: string
 		hideOptional?: boolean
 		dropdownMinWidth?: string
+		pending?: boolean
 		zodErrors?: {
 			expected: string
 			code: string
@@ -52,6 +53,7 @@
 		error,
 		hideOptional,
 		dropdownMinWidth,
+		pending = false,
 		zodErrors,
 		onchange,
 	}: Props = $props()
@@ -178,6 +180,7 @@
 		// Otherwise use the user's filter input
 		return filterInput
 	})
+
 
 	let filteredItems = $derived.by(() => {
 		// When using async fetch, server handles filtering - return items as-is
@@ -543,9 +546,9 @@
 				<!-- Single-select display -->
 				<input
 					type="text"
-					class="h-full w-full outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
+					class="h-full w-full pr-8 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
 					bind:this={searchEL}
-					value={filter}
+					value={$state.eager(filter)}
 					oninput={(e) => (filterInput = e.currentTarget.value)}
 					onclick={() => {
 						filterInput = ''
@@ -555,12 +558,23 @@
 					{placeholder}
 					required={required && !normalizedValue} />
 			{/if}
-			{#if !required && ((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue))}
+			<!-- Spinner: always in DOM so hidden attribute can be updated eagerly via $state.eager -->
+			{#if !multiple}
+				<span
+					aria-hidden="true"
+					class="loading loading-spinner loading-xs pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+					hidden={!$state.eager(pending)}
+				></span>
+			{/if}
+			<!-- Clear button: hidden attribute updated eagerly so spinner and ✕ never overlap -->
+			{#if !required}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<span
 					role="button"
 					tabindex="-1"
 					class="btn btn-sm btn-circle btn-ghost bg-base-100 absolute top-1 right-1"
+					hidden={!((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue)) ||
+					$state.eager(pending)}
 					onclick={(e) => {
 						e.preventDefault()
 						e.stopPropagation()
@@ -578,7 +592,7 @@
 			popover
 			role="listbox"
 			inert={!dropdownOpen}
-			class="dropdown menu bg-base-100 rounded-box z-50 m-0 flex flex-col flex-nowrap gap-1 p-2 shadow outline"
+			class="menu bg-base-100 rounded-box z-50 m-0 flex flex-col flex-nowrap gap-1 p-2 shadow outline"
 			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width);{dropdownMinWidth ? ` min-width: ${dropdownMinWidth};` : ''} margin-block: 0.5rem; position-try-fallbacks: flip-block;"
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
@@ -695,3 +709,12 @@
 		{/if}
 	{/if}
 </Label>
+
+<style>
+	/* The `menu` DaisyUI class applies display:flex as an author style, which has higher
+	   cascade priority than the UA stylesheet's display:none for closed [popover] elements.
+	   This rule restores the correct hide behavior without relying on UA defaults. */
+	ul[popover]:not(:popover-open) {
+		display: none !important;
+	}
+</style>
