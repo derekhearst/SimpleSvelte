@@ -101,7 +101,6 @@
 
 	// Generate unique ID for popover
 	const popoverId = `select-popover-${Math.random().toString(36).slice(2, 9)}`
-	const anchorName = `--anchor-${popoverId}`
 
 	// Ensure value is properly typed for single/multiple mode
 	// Normalize on access rather than maintaining separate state
@@ -259,6 +258,7 @@
 	})
 
 	let searchEL: HTMLInputElement | undefined = $state(undefined)
+	let triggerEl: HTMLButtonElement | undefined = $state(undefined)
 	let popoverEl: HTMLElement | undefined = $state(undefined)
 	let scrollContainerEl: HTMLDivElement | undefined = $state(undefined)
 
@@ -289,13 +289,14 @@
 		const targetTop = index * itemHeight
 		const targetBottom = targetTop + itemHeight
 		const viewTop = scrollContainerEl.scrollTop
-		const viewBottom = viewTop + containerHeight
+		const viewBottom = viewTop + listViewportHeight
 
 		if (targetTop < viewTop) {
 			scrollContainerEl.scrollTop = targetTop
 		} else if (targetBottom > viewBottom) {
-			scrollContainerEl.scrollTop = targetBottom - containerHeight
+			scrollContainerEl.scrollTop = targetBottom - listViewportHeight
 		}
+		scrollTop = scrollContainerEl.scrollTop
 	}
 
 	// Keyboard handler for arrow navigation
@@ -346,8 +347,55 @@
 	// Virtual list implementation
 	let scrollTop = $state(0)
 	const itemHeight = 40 // Approximate height of each item in pixels
-	const containerHeight = 320 // max-h-80 = 320px
-	const visibleCount = Math.ceil(containerHeight / itemHeight) + 2 // Add buffer items
+	const maxContainerHeight = 320 // max-h-80 = 320px
+	const minContainerHeight = 120
+	let listViewportHeight = $state(maxContainerHeight)
+	let visibleCount = $derived(Math.ceil(listViewportHeight / itemHeight) + 2) // Add buffer items
+	let dropdownPanelStyle = $state('')
+	const dropdownGap = 8
+
+	function updateDropdownPosition() {
+		if (!triggerEl || !popoverEl) return
+
+		const rect = triggerEl.getBoundingClientRect()
+		const viewportHeight = window.innerHeight
+		const viewportWidth = window.innerWidth
+		const viewportPadding = 8
+
+		const spaceBelow = viewportHeight - rect.bottom - dropdownGap - viewportPadding
+		const spaceAbove = rect.top - dropdownGap - viewportPadding
+		const openUpward = spaceBelow < minContainerHeight && spaceAbove > spaceBelow
+
+		const availableHeight = Math.max(minContainerHeight, openUpward ? spaceAbove : spaceBelow)
+		listViewportHeight = Math.min(maxContainerHeight, availableHeight)
+
+		const maxLeft = Math.max(viewportPadding, viewportWidth - rect.width - viewportPadding)
+		const left = Math.min(Math.max(viewportPadding, rect.left), maxLeft)
+
+		const minWidthStyle = dropdownMinWidth ? `min-width: ${dropdownMinWidth};` : ''
+		if (openUpward) {
+			const bottom = Math.max(viewportPadding, viewportHeight - rect.top + dropdownGap)
+			dropdownPanelStyle = `position: fixed; left: ${left}px; bottom: ${bottom}px; width: ${rect.width}px; max-height: ${availableHeight}px; ${minWidthStyle}`
+		} else {
+			const top = Math.max(viewportPadding, rect.bottom + dropdownGap)
+			dropdownPanelStyle = `position: fixed; left: ${left}px; top: ${top}px; width: ${rect.width}px; max-height: ${availableHeight}px; ${minWidthStyle}`
+		}
+	}
+
+	$effect(() => {
+		if (!dropdownOpen) return
+
+		updateDropdownPosition()
+		const reposition = () => updateDropdownPosition()
+
+		window.addEventListener('resize', reposition)
+		window.addEventListener('scroll', reposition, true)
+
+		return () => {
+			window.removeEventListener('resize', reposition)
+			window.removeEventListener('scroll', reposition, true)
+		}
+	})
 
 	// Calculate visible items based on scroll position (for flatList)
 	let visibleItems = $derived.by(() => {
@@ -355,7 +403,7 @@
 		const totalHeight = total * itemHeight
 
 		// If content is shorter than container, show everything from start
-		if (totalHeight <= containerHeight) {
+		if (totalHeight <= listViewportHeight) {
 			return {
 				startIndex: 0,
 				endIndex: total,
@@ -406,13 +454,17 @@
 
 					if (selectedIndex >= 0) {
 						// Calculate scroll position to center the selected item
-						const targetScrollTop = Math.max(0, selectedIndex * itemHeight - containerHeight / 2 + itemHeight / 2)
+						const targetScrollTop = Math.max(0, selectedIndex * itemHeight - listViewportHeight / 2 + itemHeight / 2)
 						// Set scroll position directly on the DOM node
 						node.scrollTop = targetScrollTop
+						scrollTop = targetScrollTop
+					} else {
+						scrollTop = node.scrollTop
 					}
 				} else {
 					// Reset flag when dropdown closes
 					hasScrolledOnOpen = false
+					scrollTop = 0
 				}
 			})
 		})
@@ -468,9 +520,15 @@
 	function handlePopoverToggle(e: ToggleEvent) {
 		dropdownOpen = e.newState === 'open'
 		if (dropdownOpen) {
+			requestAnimationFrame(() => {
+				updateDropdownPosition()
+				if (scrollContainerEl) scrollTop = scrollContainerEl.scrollTop
+			})
 			searchEL?.focus()
 		} else {
 			hasScrolledOnOpen = false
+			scrollTop = 0
+			if (scrollContainerEl) scrollContainerEl.scrollTop = 0
 		}
 	}
 </script>
@@ -488,6 +546,7 @@
 	{#if !disabled}
 		<!-- Trigger button with popover target and anchor positioning -->
 		<button
+			bind:this={triggerEl}
 			type="button"
 			popovertarget={popoverId}
 			popovertargetaction="show"
@@ -497,7 +556,6 @@
 			aria-controls={popoverId}
 			tabindex="-1"
 			class="select relative h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1 text-left"
-			style="anchor-name: {anchorName}"
 			title={tooltipText}
 			onclick={() => {
 				searchEL?.focus()
@@ -592,8 +650,8 @@
 			popover
 			role="listbox"
 			inert={!dropdownOpen}
-			class="menu bg-base-100 rounded-box z-50 m-0 flex flex-col flex-nowrap gap-1 p-2 shadow outline"
-			style="position-anchor: {anchorName}; position: fixed; top: anchor(bottom); left: anchor(left); width: anchor-size(width);{dropdownMinWidth ? ` min-width: ${dropdownMinWidth};` : ''} margin-block: 0.5rem; position-try-fallbacks: flip-block;"
+			class="menu bg-base-100 rounded-box z-50 m-0 flex flex-col flex-nowrap gap-1 overflow-hidden p-2 shadow outline"
+			style={dropdownPanelStyle}
 			ontoggle={handlePopoverToggle}>
 			{#if multiple && filteredItems.length > 1}
 				<!-- Select All / Clear All options for multi-select -->
@@ -632,7 +690,8 @@
 
 			{#if flatList.length > 0}
 				<div
-					class="relative max-h-80 overflow-y-auto pr-2"
+					class="relative overflow-y-auto pr-2"
+					style="max-height: {listViewportHeight}px;"
 					bind:this={scrollContainerEl}
 					use:scrollToSelected
 					onscroll={handleScroll}>
