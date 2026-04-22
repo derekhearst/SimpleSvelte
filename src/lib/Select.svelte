@@ -483,6 +483,15 @@
 		return undefined
 	})
 
+	const hasClearValue = $derived.by(() => {
+		if (multiple) return Array.isArray(normalizedValue) && normalizedValue.length > 0
+		return normalizedValue !== undefined && normalizedValue !== null && normalizedValue !== ''
+	})
+
+	const showPendingSpinner = $derived.by(() => !multiple && pending)
+	const showClearButton = $derived.by(() => !required && hasClearValue && !pending)
+	const singleInputPaddingClass = $derived.by(() => (showPendingSpinner || showClearButton ? 'pr-8' : 'pr-2'))
+
 	// Tooltip showing all selected items
 	const tooltipText = $derived.by(() => {
 		if (multiple && selectedItems.length > 0) {
@@ -604,7 +613,7 @@
 				<!-- Single-select display -->
 				<input
 					type="text"
-					class="h-full w-full pr-8 outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
+					class="h-full w-full {singleInputPaddingClass} outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
 					bind:this={searchEL}
 					value={$state.eager(filter)}
 					oninput={(e) => (filterInput = e.currentTarget.value)}
@@ -621,7 +630,7 @@
 				<span
 					aria-hidden="true"
 					class="loading loading-spinner loading-xs pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
-					hidden={!$state.eager(pending)}
+					hidden={!$state.eager(showPendingSpinner)}
 				></span>
 			{/if}
 			<!-- Clear button: hidden attribute updated eagerly so spinner and ✕ never overlap -->
@@ -631,8 +640,7 @@
 					role="button"
 					tabindex="-1"
 					class="btn btn-sm btn-circle btn-ghost bg-base-100 absolute top-1 right-1"
-					hidden={!((multiple && Array.isArray(normalizedValue) && normalizedValue.length > 0) || (!multiple && normalizedValue)) ||
-					$state.eager(pending)}
+					hidden={!$state.eager(showClearButton)}
 					onclick={(e) => {
 						e.preventDefault()
 						e.stopPropagation()
