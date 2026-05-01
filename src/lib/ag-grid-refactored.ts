@@ -1454,6 +1454,38 @@ export function createAGGridQuery<TRecord = any>(config: AGGridQueryConfig<TReco
  * })
  * ```
  */
+/**
+ * Resolve a value that may be either a plain Promise or a SvelteKit remote
+ * `query()` proxy. Mirrors `@brownandroot/api`'s `runQuery` helper so SimpleSvelte
+ * components (Grid SSRM datasource, async Select) can accept query proxies
+ * directly without each consumer needing to remember `.run()` semantics.
+ *
+ * - If the value exposes a `.run()` method (a query proxy created outside a
+ *   tracking scope), call that — awaiting the proxy directly would throw
+ *   "not created in a reactive context".
+ * - If `.run()` itself rejects with a render-context error, fall back to
+ *   awaiting the value as a plain thenable.
+ * - Otherwise just await it.
+ */
+async function runRemoteQuery<T>(value: PromiseLike<T> | (PromiseLike<T> & { run?: () => Promise<T> })): Promise<T> {
+	const maybeRun = (value as { run?: () => Promise<T> }).run
+	if (typeof maybeRun === 'function') {
+		try {
+			return await maybeRun.call(value)
+		} catch (err) {
+			// `.run()` throws synchronously when invoked from inside render; only
+			// fall back when that's the failure mode, otherwise log and propagate
+			// so the caller's error handler still surfaces real failures.
+			if (err instanceof Error && err.message.includes('outside render')) {
+				return await (value as PromiseLike<T>)
+			}
+			console.error('[simplesvelte] runRemoteQuery: query .run() failed', err)
+			throw err
+		}
+	}
+	return await value
+}
+
 export function createAGGridDatasource<TData = any>(
 	fetcher: (request: AGGridRequest) => Promise<AGGridResponse<TData>>,
 	options: {
@@ -1490,8 +1522,13 @@ export function createAGGridDatasource<TData = any>(
 					onBeforeRequest(request)
 				}
 
-				// Fetch data using provided fetcher
-				const response = await fetcher(request)
+				// Fetch data using provided fetcher.
+				// AG Grid's getRows runs outside any Svelte reactive context, so a
+				// SvelteKit remote `query()` proxy can't be awaited directly — its
+				// `then` getter throws "not created in a reactive context". Use the
+				// proxy's `.run()` when available, falling back to a direct await on
+				// failure (e.g. somehow being called from a tracking scope).
+				const response = await runRemoteQuery<AGGridResponse<TData>>(fetcher(request))
 
 				if (debug) {
 					console.log('[AG Grid SSRM] Response:', {
