@@ -115,11 +115,31 @@
 		}
 	})
 
+	// Cache the last resolved single-select option so that we can still display
+	// its label even after `items` no longer contains it (e.g. with async
+	// `fetchOptions` after a no-results search clears the list).
+	let lastSelectedItem = $state<SelectOption | undefined>(undefined)
+
+	$effect(() => {
+		if (multiple) return
+		const found = items.find((item) => item.value === normalizedValue)
+		if (found) {
+			lastSelectedItem = found
+		} else if (lastSelectedItem && lastSelectedItem.value !== normalizedValue) {
+			// Value changed (or cleared) — invalidate the stale cache.
+			lastSelectedItem = undefined
+		}
+	})
+
 	// For single select mode
 	let selectedItem = $derived.by(() => {
 		if (multiple) return null
 		const currentValue = normalizedValue
-		return items.find((item) => item.value === currentValue)
+		const found = items.find((item) => item.value === currentValue)
+		if (found) return found
+		// Fall back to the cached option when the live items list no longer holds it.
+		if (lastSelectedItem && lastSelectedItem.value === currentValue) return lastSelectedItem
+		return undefined
 	})
 	// For multi select mode
 	let selectedItems = $derived.by(() => {
@@ -488,6 +508,11 @@
 			hasScrolledOnOpen = false
 			scrollTop = 0
 			if (scrollContainerEl) scrollContainerEl.scrollTop = 0
+			// Reset the search filter when the dropdown closes (e.g. via outside-click
+			// or Escape) so the displayed value reverts to the selected item's label
+			// instead of leftover search text. Only applies to single-select; multi-select
+			// keeps its filter for continued tag picking.
+			if (!multiple) filterInput = ''
 		}
 	}
 </script>
