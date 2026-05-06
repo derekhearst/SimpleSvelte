@@ -54,6 +54,34 @@
 	let multiValue = $state([])
 	let requiredValue: string | undefined = $state()
 	let optionalValue = $state([])
+	let descriptionHoverValue: string | undefined = $state()
+	let descriptionKeyboardValue: string | undefined = $state()
+	const descriptionOptions = [
+		{
+			value: '300',
+			label: '300 - Internal Promotion',
+			description:
+				'Tests a longer description preview for a promotion reason code. Hovering or keyboard-highlighting this item should show this text in the dropdown preview panel.',
+		},
+		{
+			value: '401',
+			label: '401 - Voluntary Demotion',
+			description:
+				'Tests a second unique description so you can confirm the preview changes per item instead of repeating the selected value.',
+		},
+		{
+			value: '504',
+			label: '504 - Annual Merit Review',
+			description:
+				'Tests that long descriptions still wrap cleanly and remain readable while moving between multiple options in the same open dropdown.',
+		},
+		{
+			value: '600',
+			label: '600 - Lateral Transfer',
+			description:
+				'Tests another option-specific preview so you can verify mouse hover and keyboard navigation both point at the currently active item.',
+		},
+	]
 
 	// Tab navigation test
 	let tabTestSingle = $state('svelte')
@@ -99,6 +127,60 @@
 		<div class="bg-base-200 rounded p-3 text-sm">
 			<strong>Selected:</strong>
 			<span class="text-base-content/80 ml-2">{defaultValue || 'None selected'}</span>
+		</div>
+	</section>
+
+	<!-- Description Hover Preview Test -->
+	<section class="bg-base-100 border-base-300 space-y-4 rounded-lg border p-6">
+		<div>
+			<h2 class="text-xl font-semibold">Option Description Hover Preview</h2>
+			<p class="text-base-content/60 text-sm">
+				Open the dropdown and move your mouse across the items. The description panel inside the dropdown should update for
+				each hovered option.
+			</p>
+		</div>
+		<Select
+			bind:value={descriptionHoverValue}
+			options={descriptionOptions}
+			label="Reason code hover preview"
+			name="description-hover-preview" />
+		<div class="bg-base-200 rounded p-3 text-sm">
+			<strong>Expected:</strong>
+			<span class="text-base-content/80 ml-2">
+				Hovering "300 - Internal Promotion" should show the promotion text. Moving to "401 - Voluntary Demotion"
+				should replace it with the demotion text without closing the dropdown.
+			</span>
+		</div>
+		<div class="bg-base-200 rounded p-3 text-sm">
+			<strong>Selected:</strong>
+			<span class="text-base-content/80 ml-2">{descriptionHoverValue || 'None selected'}</span>
+		</div>
+	</section>
+
+	<!-- Description Keyboard Preview Test -->
+	<section class="bg-base-100 border-base-300 space-y-4 rounded-lg border p-6">
+		<div>
+			<h2 class="text-xl font-semibold">Option Description Keyboard Preview</h2>
+			<p class="text-base-content/60 text-sm">
+				Focus the input, open the dropdown with Arrow Down, and move through items with the keyboard. The same description
+				panel should follow the highlighted option before you press Enter.
+			</p>
+		</div>
+		<Select
+			bind:value={descriptionKeyboardValue}
+			options={descriptionOptions}
+			label="Reason code keyboard preview"
+			name="description-keyboard-preview" />
+		<div class="bg-base-200 rounded p-3 text-sm">
+			<strong>Expected:</strong>
+			<span class="text-base-content/80 ml-2">
+				Arrowing through the list should change the description preview even before selecting an item. Closing the dropdown
+				should clear the preview panel.
+			</span>
+		</div>
+		<div class="bg-base-200 rounded p-3 text-sm">
+			<strong>Selected:</strong>
+			<span class="text-base-content/80 ml-2">{descriptionKeyboardValue || 'None selected'}</span>
 		</div>
 	</section>
 
