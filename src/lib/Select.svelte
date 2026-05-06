@@ -704,6 +704,7 @@
 										? ' bg-primary text-primary-content hover:bg-primary/70!'
 										: ''} {isHighlighted && !isSelected ? 'bg-base-200' : ''}"
 									type="button"
+									title={item.description ?? item.label}
 									onclick={(e) => {
 										e.stopPropagation()
 										toggleItemSelection(item.value)
