@@ -321,6 +321,14 @@
 
 	// Keyboard handler for arrow navigation
 	function handleKeydown(e: KeyboardEvent) {
+		// Any printable character (or Backspace/Delete) should open the dropdown
+		// so users can never type into a closed dropdown that looks like a text field.
+		if (!dropdownOpen) {
+			const isPrintable = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey
+			if (isPrintable || e.key === 'Backspace' || e.key === 'Delete') {
+				openDropdown()
+			}
+		}
 		if (e.key === 'ArrowDown') {
 			e.preventDefault()
 			if (!dropdownOpen) openDropdown()
@@ -580,6 +588,10 @@
 						bind:this={searchEL}
 						bind:value={filterInput}
 						onclick={() => openDropdown()}
+						onfocus={() => openDropdown()}
+						oninput={() => {
+							if (!dropdownOpen) openDropdown()
+						}}
 						onkeydown={handleKeydown}
 						placeholder="Search..."
 						required={required && (!Array.isArray(normalizedValue) || normalizedValue.length === 0)} />
@@ -591,11 +603,15 @@
 					class="h-full w-full {singleInputPaddingClass} outline-0 {dropdownOpen ? 'cursor-text' : 'cursor-pointer'}"
 					bind:this={searchEL}
 					value={$state.eager(filter)}
-					oninput={(e) => (filterInput = e.currentTarget.value)}
+					oninput={(e) => {
+						filterInput = e.currentTarget.value
+						if (!dropdownOpen) openDropdown()
+					}}
 					onclick={() => {
 						filterInput = ''
 						openDropdown()
 					}}
+					onfocus={() => openDropdown()}
 					onkeydown={handleKeydown}
 					{placeholder}
 					required={required && !normalizedValue} />
