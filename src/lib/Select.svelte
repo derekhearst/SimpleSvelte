@@ -588,7 +588,6 @@
 						bind:this={searchEL}
 						bind:value={filterInput}
 						onclick={() => openDropdown()}
-						onfocus={() => openDropdown()}
 						oninput={() => {
 							if (!dropdownOpen) openDropdown()
 						}}
@@ -611,7 +610,6 @@
 						filterInput = ''
 						openDropdown()
 					}}
-					onfocus={() => openDropdown()}
 					onkeydown={handleKeydown}
 					{placeholder}
 					required={required && !normalizedValue} />
