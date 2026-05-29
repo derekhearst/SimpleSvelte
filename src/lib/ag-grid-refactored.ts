@@ -66,11 +66,15 @@ export type AGGridResponse<TData = any> = {
 // ============================================================================
 
 // Internal schemas
+// Matches AG Grid's `ColumnVO`. AG Grid sends `aggFunc: null` for row-group
+// columns (and `displayName`/`field` can be null when no header name is set),
+// so these must accept null — a plain `.optional()` rejects null and makes the
+// whole grid request fail validation (the grid then renders "ERR").
 const agGridColumnSchema = z.object({
 	id: z.string(),
-	displayName: z.string(),
-	field: z.string().optional(),
-	aggFunc: z.string().optional(),
+	displayName: z.string().nullish(),
+	field: z.string().nullish(),
+	aggFunc: z.string().nullish(),
 })
 
 const agGridSortSchema = z.object({
