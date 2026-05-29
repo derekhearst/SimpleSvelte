@@ -50,4 +50,6 @@ jobs:
       - name: Publish to npm
         run: npm publish --access public
         env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # setup-node writes an .npmrc that reads the token from NODE_AUTH_TOKEN;
+          # NPM_CONFIG_TOKEN is ignored by npm, so auth silently fails (404 on PUT).
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
