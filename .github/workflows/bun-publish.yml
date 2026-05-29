@@ -47,9 +47,10 @@ jobs:
       - name: Build package
         run: bun run build
 
+      # Trusted publishing (OIDC): npm >= 11.5.1 + `id-token: write` exchanges the
+      # GitHub OIDC token for a short-lived npm credential. Do NOT pass a token here
+      # — setting NODE_AUTH_TOKEN forces legacy token auth and bypasses OIDC.
+      # Requires a Trusted Publisher to be configured for this package on npmjs.com
+      # (org: brownandroot, repo: SimpleSvelte, workflow: bun-publish.yml).
       - name: Publish to npm
         run: npm publish --access public
-        env:
-          # setup-node writes an .npmrc that reads the token from NODE_AUTH_TOKEN;
-          # NPM_CONFIG_TOKEN is ignored by npm, so auth silently fails (404 on PUT).
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
