@@ -549,10 +549,15 @@
 			class="select relative h-max min-h-10 w-full min-w-12 cursor-pointer bg-none! pr-1 text-left"
 			style="anchor-name: {anchorName}"
 			title={tooltipText}
-			onclick={() => {
+			onclick={(e) => {
 				searchEL?.focus()
+				// The search <input> is nested inside this trigger <button>, so pressing
+				// Space (or Enter) while typing makes the browser synthesize a click on the
+				// button. A keyboard-synthesized click has detail === 0, a real pointer click
+				// has detail >= 1. Only clear on genuine clicks so typing a space doesn't wipe
+				// the search box.
 				// Only clear filter in single-select mode; in multi-select, keep filter for continued searching
-				if (!multiple) filterInput = ''
+				if (!multiple && e.detail > 0) filterInput = ''
 			}}>
 			{#if multiple}
 				<!-- Multi-select display with condensed chips -->
